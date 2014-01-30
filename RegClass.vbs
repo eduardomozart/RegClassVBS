@@ -115,7 +115,7 @@ Public Function GetValue(Path_)
        ValName_ = Right(Path1_, (len(Path1_) - Pt1_))
        Path1_ = Left(Path1_, (Pt1_ - 1))    
           Select Case Typ_
-            Case "S"
+            Case "REG_SZ"
               'iRet_ = Reg1_.GetStringValue(LKey_, Path1_, ValName_, Val_)
                	Set Inparams_ = Reg1_.Methods_("GetStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -125,7 +125,7 @@ Public Function GetValue(Path_)
 				Set Outparams_ = Reg1_.ExecMethod_("GetStringValue", Inparams_,,Ctx_) 
 				iRet_ = Outparams_.ReturnValue
 				GetValue = Outparams_.sValue
-            Case "X"
+            Case "REG_EXPAND_SZ"
               'iRet_ = Reg1_.GetExpandedStringValue(LKey_, Path1_, ValName_, Val_)
                 Set Inparams_ = Reg1_.Methods_("GetExpandedStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -135,7 +135,7 @@ Public Function GetValue(Path_)
 				Set Outparams_ = Reg1_.ExecMethod_("GetExpandedStringValue", Inparams_,,Ctx_) 
 				iRet_ = Outparams_.ReturnValue
 				GetValue = Outparams_.sValue
-            Case "B"
+            Case "REG_BINARY"
               'iRet_ = Reg1_.GetBinaryValue(LKey_, Path1_, ValName_, Val_)
                 Set Inparams_ = Reg1_.Methods_("GetBinaryValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -145,7 +145,7 @@ Public Function GetValue(Path_)
 				Set Outparams_ = Reg1_.ExecMethod_("GetBinaryValue", Inparams_,,Ctx_) 
 				iRet_ = Outparams_.ReturnValue
 				GetValue = Outparams_.uValue
-            Case "D"
+            Case "REG_DWORD"
               'iRet_ = Reg1_.GetDWORDValue(LKey_, Path1_, ValName_, Val_)
                 Set Inparams_ = Reg1_.Methods_("GetDWORDValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -155,7 +155,7 @@ Public Function GetValue(Path_)
 				Set Outparams_ = Reg1_.ExecMethod_("GetDWORDValue", Inparams_,,Ctx_) 
 				iRet_ = Outparams_.ReturnValue
 				GetValue = Outparams_.uValue
-            Case "M"  
+            Case "REG_MULTI_SZ"  
               'iRet_ = Reg1_.GetMultiStringValue(LKey_, Path1_, ValName_, Val_)
                 Set Inparams_ = Reg1_.Methods_("GetMultiStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -287,6 +287,7 @@ End Function
 Public Function SetValue(Path_, ValData_, TypeIn_)
    Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_, Typ_
    Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
+   Dim arrHexValues_, arrDecValues_, n '-- reg_binary
 
 
   On Error Resume Next
@@ -294,14 +295,16 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
    If Len(TypeIn_) = 0 Then 
      Typ_ = Exists(Path_)
        If Len(Typ_) = 0 Then 
-			If VarType(Path_) = vbString Then
-				Typ_ = "S"
-			ElseIf VarType(Path_) = vbInteger or VarType(Path_) = vbLong or VarType(Path_) = vbBoolean then 
-				Typ_ = "D"
+			If VarType(ValData_) = vbString Then
+				Typ_ = "REG_SZ"
+			ElseIf IsArray(ValData_) or LCase(Left(ValData_, Len("hex:"))) = "hex:" Then
+				Typ_ = "REG_BINARY"
+			ElseIf VarType(ValData_) = vbInteger or VarType(ValData_) = vbLong or VarType(ValData_) = vbBoolean then 
+				Typ_ = "REG_DWORD"
 			End If 
 	   End If
    Else
-      If isNumeric(TypeIn_) Then 
+      If IsNumeric(TypeIn_) Or Len(TypeIn_) = 1 Then 
          Typ_ = ConvertType(TypeIn_)
       Else
          Typ_ = UCase(TypeIn_)
@@ -322,11 +325,15 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
            Exit Function
         End If   
   
+   '-- create a key if it does not exist ------------
+  iRet_ = EnumKeys(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1), AKeys)
+  If iRet_ = -3 Then CreateKey(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1))
+  
   Set Ctx_ = CreateObject("WbemScripting.SWbemNamedValueSet")
   Ctx_.Add "__ProviderArchitecture", Provider_
   Set Svc_ = Loc_.ConnectServer("","root\default","","",,,,Ctx_)
   Set Reg1_ = Svc_.Get("StdRegProv") 
-		      
+  
   If (Typ_ = "K") Or (Right(Path1_, 1) = "\") Then
       If Right(Path1_, 1) = "\" Then Path1_ = Left(Path1_, (len(Path1_) - 1))
         'iRet_ = Reg1_.SetStringValue(LKey_, Path1_, "", ValData_)
@@ -345,7 +352,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
      ValName_ = Right(Path1_, (len(Path1_) - Pt1_))
      Path1_ = Left(Path1_, (Pt1_ - 1))     
         Select Case Typ_
-          Case "S"
+          Case "REG_SZ"
              'iRet_ = Reg1_.SetStringValue(LKey_, Path1_, ValName_, ValData_)
              Set Inparams_ = Reg1_.Methods_("SetStringValue").Inparameters
 			 Inparams_.Hdefkey = LKey_
@@ -354,8 +361,8 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 			 Inparams_.sValue = ValData_
 				
 			 Set Outparams_ = Reg1_.ExecMethod_("SetStringValue", Inparams_,,Ctx_)
-			 iRet = Outparams_.ReturnValue 
-          Case "X"
+			 iRet_ = Outparams_.ReturnValue 
+          Case "REG_EXPAND_SZ"
              'iRet_ = Reg1_.SetExpandedStringValue(LKey_, Path1_, ValName_, ValData_)
              Set Inparams_ = Reg1_.Methods_("SetExpandedStringValue").Inparameters
 			 Inparams_.Hdefkey = LKey_
@@ -364,28 +371,39 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 			 Inparams_.sValue = ValData_
 				
 			 Set Outparams_ = Reg1_.ExecMethod_("SetExpandedStringValue", Inparams_,,Ctx_)
-			 iRet = Outparams_.ReturnValue 
-          Case "B"
+			 iRet_ = Outparams_.ReturnValue 
+          Case "REG_BINARY"
              'iRet_ = Reg1_.SetBinaryValue(LKey_, Path1_, ValName_, ValData_)
              Set Inparams_ = Reg1_.Methods_("SetBinaryValue").Inparameters
 			 Inparams_.Hdefkey = LKey_
 			 Inparams_.Ssubkeyname = Path1_ 
 			 Inparams_.sValueName = ValName_
-			 Inparams_.sValue = ValData_
+			 
+			 If IsArray(ValData_) Then
+			 	Inparams_.uValue = ValData_
+			 ElseIf LCase(Left(ValData_, Len("hex:"))) = "hex:" Then
+			 	'Example:   ValData_ = "hex:23,00,41,00,43,00,42,00,6c,00"
+				arrHexValues_ = Split(Replace(ValData_, "hex:", ""), ",")
+				arrDecValues_ = DecimalNumbers(arrHexValues_)
+				Inparams_.uValue = arrDecValues_
+			 Else
+			 	SetValue = -6 '-- type mismatch. incoming value not valid.
+			 	Exit Function
+			 End If
 				
 			 Set Outparams_ = Reg1_.ExecMethod_("SetBinaryValue", Inparams_,,Ctx_)
-			 iRet = Outparams_.ReturnValue 
-          Case "D"
+			 iRet_ = Outparams_.ReturnValue 
+          Case "REG_DWORD"
              'iRet_ = Reg1_.SetDWORDValue(LKey_, Path1_, ValName_, ValData_)
              Set Inparams_ = Reg1_.Methods_("SetDWORDValue").Inparameters
 			 Inparams_.Hdefkey = LKey_
 			 Inparams_.Ssubkeyname = Path1_ 
 			 Inparams_.sValueName = ValName_
-			 Inparams_.sValue = ValData_
+			 Inparams_.uValue = ValData_
 				
 			 Set Outparams_ = Reg1_.ExecMethod_("SetDWORDValue", Inparams_,,Ctx_)
-			 iRet = Outparams_.ReturnValue 
-          Case "M"  
+			 iRet_ = Outparams_.ReturnValue 
+          Case "REG_MULTI_SZ"  
              'iRet_ = Reg1_.SetMultiStringValue(LKey_, Path1_, ValName_, ValData_)
              Set Inparams_ = Reg1_.Methods_("SetMultiStringValue").Inparameters
 			 Inparams_.Hdefkey = LKey_
@@ -394,12 +412,13 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 			 Inparams_.sValue = ValData_
 				
 			 Set Outparams_ = Reg1_.ExecMethod_("SetMultiStringValue", Inparams_,,Ctx_)
-			 iRet = Outparams_.ReturnValue 
+			 iRet_ = Outparams_.ReturnValue 
           Case Else
              SetValue = -7
              Exit Function 
         End Select
   End If   
+   
     If (Err.number = -2147217403) Then 
        SetValue = -6  '-- type mismatch. incoming value not valid.
        Exit Function
@@ -412,7 +431,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
      Case -2147217405   '--  access denied  H80041003
           SetValue = -4
      Case Else
-          SetValue = -5  '-- some other error.  
+          SetValue = iRet_  '-- some other error.  
     End Select
 End Function
 
@@ -469,9 +488,8 @@ Public Function Delete(Path_)
 
       On Error Resume Next
       Delete = -1 'invalid path.
-        If Len(Path_) < 6 Then Exit Function
-    Pt1_ = InStr(1, Path_, "\")      
-      If Pt1_ = 0 Then Exit Function
+	    Pt1_ = InStr(1, Path_, "\")      
+	      If Pt1_ = 0 Then Exit Function
   sKey_ = Left(Path_, (Pt1_ - 1))     
   Path1_ = Right(Path_, (len(Path_) - Pt1_))
      Delete = -2  ' invalid hkey.
@@ -490,7 +508,7 @@ Public Function Delete(Path_)
 	   Ctx_.Add "__ProviderArchitecture", Provider_
 	   Set Svc_ = Loc_.ConnectServer("","root\default","","",,,,Ctx_)
 	   Set Reg1_ = Svc_.Get("StdRegProv") 
-			
+	   
 	   Set Inparams_ = Reg1_.Methods_("DeleteValue").Inparameters
 	   Inparams_.Hdefkey = LKey_
 	   Inparams_.Ssubkeyname = Path1_ 
@@ -508,15 +526,58 @@ Public Function Delete(Path_)
         Case -2  ' returned from DeleteKey
           Delete = -2
         Case 2
-          Delete = -3
+          Delete = -3 ' value does not exists.
         Case -2147217405   '--  access denied  H80041003
           Delete = -4
-        Case 5
-          Delete = -6 '--keys exist under this key.
        Case Else
-          Delete = -5  '-- some other error.  
+          Delete = iRet_  '-- some other error.  
     End Select
   
+End Function
+
+Public Function TestPath(PathIn)
+  ' HKCU\ControlPanel\Desktop = 3
+  ' HKLM\Software\Microsoft\Windows NT\CurrentVersion = 5
+  
+  Dim sKey_, Path_, sHKUSubKey_
+  Dim PathIn_, Cnt_, Pt1_, Pt2_
+      On Error Resume Next
+    If InStr(PathIn, "\") = 0 Then TestPath = 0 : Exit Function
+      
+    sKey_ = Left(PathIn, InStr(PathIn, "\")-1) : sKey_ = UCase(sKey_)
+    Path_ = Mid(PathIn, InStr(PathIn, "\")+1, Len(PathIn)) : Path_ = UCase(Path_)
+    	If Path_ = "" Then TestPath = 0 : Exit Function
+    
+    ' Consider HKEY_USERS\S-1-5-21-1501084202-2593169170-243912787-500 as HKCU
+    ' Consider HKEY_USERS\S-1-5-21-1501084202-2593169170-243912787-500_Classes as HKCR
+	If Left(sKey_,Len("HKU\")) = "HKU\" Or _
+		Left(sKey_, Len("HKEY_USERS\")) = "HKEY_USERS\" Then
+		
+		' S-1-5-21-1501084202-2593169170-243912787-500 
+		' S-1-5-21-1501084202-2593169170-243912787-500_Classes
+		sHKUSubKey_ = Left(Path_, InStr(Path_, "\")-1) : sHKUSubKey_ = UCase(sHKUSubKey_)
+		
+		If Right(sHKUSubKey, Len("_CLASSES")) = "_CLASSES" Then
+			sKey = "HKCR"
+		Else
+			sKey = "HKCU"
+		End If 
+	End If
+	
+	PathIn_ = sKey_ & "\" & Path_
+	Cnt_ = 0
+    Pt1_ = 1
+      Do
+        Pt2_ = InStr(Pt1_, PathIn_, "\")
+          If (Pt2_ = 0) Then
+              Exit Do
+          Else
+             Pt1_ = Pt2_ + 1
+             Cnt_ = Cnt_ + 1
+             If (Pt1_ > Len(PathIn_)) Then Exit Do
+          End If
+      Loop   
+        TestPath = Cnt_
 End Function
 
  '--------------------------------------- Private Functions ----------------------------
@@ -535,7 +596,7 @@ Private Sub Class_Initialize()
   
   Set Loc_ = CreateObject("Wbemscripting.SWbemLocator")
   ' http://csi-windows.com/toolkit/csi-getosbits
-  Processor_ = GetObject("winmgmts:root\cimv2:Win32_Processor='cpu0'").AddressWidth
+  Processor_ = GetValue("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
 End Sub 
 
 Private Sub Class_Terminate()
@@ -545,7 +606,7 @@ End Sub
 
 Private Function GetHKey(sKey1_) 
   If Right(sKey1_, 2) = "64" Then
-  	If Processor_ = 64 Then
+  	If Processor_ = "AMD64" Then
   		Provider_ = 64
   	Else
   		Provider_ = 32
@@ -582,36 +643,31 @@ Private Function ConvertType(TypeIn)
     On Error Resume Next
   Select Case TypeIn
      Case 1
-        ConvertType = "S"
+        ConvertType = "REG_SZ"
      Case 2
-        ConvertType = "X"
+        ConvertType = "REG_EXPAND_SZ"
      Case 3
-        ConvertType = "B"
+        ConvertType = "REG_BINARY"
      Case 4
-        ConvertType = "D"
+        ConvertType = "REG_DWORD"
      Case 7
-        ConvertType = "M"
+        ConvertType = "REG_MULTI_SZ"
+     
+     ' Compatibility Layer 
+     Case "S"
+     	ConvertType = "REG_SZ"
+     Case "X"
+     	ConvertType = "REG_EXPAND_SZ"
+     Case "B"
+     	ConvertType = "REG_BINARY"
+     Case "D"
+     	ConvertType = "REG_DWORD"
+     Case "M"
+     	ConvertType = "REG_MULTI_SZ"
+     
      Case Else
        ConvertType = ""
   End Select        
-End Function
-
-Private Function TestPath(PathIn)
-  Dim Cnt_, Pt1_, Pt2_
-      On Error Resume Next
-    Cnt_ = 0
-    Pt1_ = 1
-      Do
-        Pt2_ = InStr(Pt1_, PathIn, "\")
-          If (Pt2_ = 0) Then
-              Exit Do
-          Else
-             Pt1_ = Pt2_ + 1
-             Cnt_ = Cnt_ + 1
-             If (Pt1_ > Len(PathIn)) Then Exit Do
-          End If
-      Loop   
-        TestPath = Cnt_
 End Function
 
 Public Function EnumKeysAll(Path_, AKeys_)
@@ -658,14 +714,11 @@ Private Function DeleteKey(Path_)
        Exit Function
     End If   
   
+  
   Set Ctx_ = CreateObject("WbemScripting.SWbemNamedValueSet")
   Ctx_.Add "__ProviderArchitecture", Provider_
   Set Svc_ = Loc_.ConnectServer("","root\default","","",,,,Ctx_)
   Set Reg1_ = Svc_.Get("StdRegProv") 
-			
-  Set Inparams_ = Reg1_.Methods_("DeleteKey").Inparameters
-  Inparams_.Hdefkey = hK_
-  Inparams_.Ssubkeyname = s2_ 
 
   iRet_ = EnumKeysAll(Path_, A1_)
     If (iRet_ > 0) Then
@@ -674,6 +727,10 @@ Private Function DeleteKey(Path_)
           s2_ = Right(s2_, (len(s2_) - Pt1_))  '-- remove hkey string from path.
           If Right(s2_, 1) = "\" Then s2_ = Left(s2_, (len(s2_) - 1))
           'i4_ = Reg1_.DeleteKey(hK_, s2_)
+          Set Inparams_ = Reg1_.Methods_("DeleteKey").Inparameters
+  		  Inparams_.Hdefkey = hK_
+          Inparams_.Ssubkeyname = s2_ 
+          
           Set Outparams_ = Reg1_.ExecMethod_("DeleteKey", Inparams_,,Ctx_) 
   		  i4_ = Outparams_.ReturnValue
        Next
@@ -681,10 +738,29 @@ Private Function DeleteKey(Path_)
    
    s2_ = Right(Path_, (len(Path_) - Pt1_))   
      If Right(s2_, 1) = "\" Then s2_ = Left(s2_, (len(s2_) - 1))
-   'i3_ = Reg1_.DeleteKey(hK_, s2_)
-   'DeleteKey = i3_
+   'DeleteKey = Reg1_.DeleteKey(hK_, s2_)
+   Set Inparams_ = Reg1_.Methods_("DeleteKey").Inparameters
+   Inparams_.Hdefkey = hK_
+   Inparams_.Ssubkeyname = s2_  
+   
    Set Outparams_ = Reg1_.ExecMethod_("DeleteKey", Inparams_,,Ctx_) 
    DeleteKey = Outparams_.ReturnValue
+End Function
+
+Private Function DecimalNumbers(arrHex_)
+    On Error Resume Next
+    
+    ' from: http://www.petri.co.il/forums/showthread.php?t=46158
+    Dim i, strDecValues_
+    For i = 0 to Ubound(arrHex_)
+        If isEmpty(strDecValues_) Then
+            strDecValues_ = CLng("&H" & arrHex_(i))
+        Else
+            strDecValues_ = strDecValues_ & "," & CLng("&H" & arrHex_(i))
+        End If
+    Next
+      
+    DecimalNumbers = split(strDecValues_, ",")
 End Function
 
 End Class
