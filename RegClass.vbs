@@ -81,6 +81,10 @@ Public Function GetValue(Path_)
    Path1_ = ""
  End If  
  
+   GetValue = -3 '-- os arch mismatch.
+   	 If IsEmpty(Provider_) Then Exit Function
+ 
+ 
  Set Ctx_ = CreateObject("WbemScripting.SWbemNamedValueSet")
  Ctx_.Add "__ProviderArchitecture", Provider_
  Set Svc_ = Loc_.ConnectServer("","root\default","","",,,,Ctx_)
@@ -165,6 +169,15 @@ Public Function GetValue(Path_)
 				Set Outparams_ = Reg1_.ExecMethod_("GetMultiStringValue", Inparams_,,Ctx_) 
 				iRet_ = Outparams_.ReturnValue
 				GetValue = Outparams_.sValue
+			Case "REG_QWORD"
+			    Set Inparams_ = Reg1_.Methods_("GetQWORDValue").Inparameters
+				Inparams_.Hdefkey = LKey_
+				Inparams_.Ssubkeyname = Path1_ 
+				Inparams_.sValueName = ValName_
+				
+				Set Outparams_ = Reg1_.ExecMethod_("GetQWORDValue", Inparams_,,Ctx_) 
+				iRet_ = Outparams_.ReturnValue
+				GetValue = Outparams_.uValue
             Case Else
                Exit Function  
           End Select
@@ -190,6 +203,8 @@ Public Function EnumKeys(Path_, AKeys_)
   LKey_ = GetHKey(sKey_)
   EnumKeys = -2 '-- invalid hkey.
      If (LKey_ = 0) Then Exit Function
+  EnumKeys = -3 '-- os arch mismatch.
+  	 If IsEmpty(Provider_) Then Exit Function
      
     If (sKey_ = Path_) Then
        Path1_ = ""
@@ -225,7 +240,7 @@ Public Function EnumKeys(Path_, AKeys_)
      Case -2147217405   '--  access denied  H80041003
          EnumKeys = -4
      Case Else
-         EnumKeys = -5  '-- some other error.  
+         EnumKeys = iRet_  '-- some other error.  
    End Select
 End Function
 
@@ -247,6 +262,9 @@ Public Function EnumVals(Path_, Vals_, Types_)
        LKey_ = GetHKey(sKey_)
      EnumVals = -2 '-- invalid hkey.
        If (LKey_ = 0) Then Exit Function
+     EnumVals = -3 '-- os arch mismatch.
+       If IsEmpty(Provider_) Then Exit Function
+       
     
       If Right(Path1_, 1) = "\" Then Path1_ = Left(Path1_, (len(Path1_) - 1))  
     'iRet_ = Reg1_.EnumValues(LKey_, Path1_, Vals_, Types_)
@@ -276,31 +294,64 @@ Public Function EnumVals(Path_, Vals_, Types_)
             Next   
         End If  
      Case 2 '-- invalid key Path
-        EnumVals = -3  
+        EnumVals = -4  
      Case -2147217405   '--  access denied  H80041003
-        EnumVals = -4
+        EnumVals = -5
      Case Else
-        EnumVals = -5  '-- some other error.  
+        EnumVals = iRet_  '-- some other error.  
    End Select
 End Function
 
 Public Function SetValue(Path_, ValData_, TypeIn_)
    Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_, Typ_
    Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
+   
+   '-- Typ_
+   Dim vbArrayInteger, vbArrayString
+   Dim RegEx_, REsult_ '-- reg_expand_sz
+   
    Dim arrHexValues_, arrDecValues_, n '-- reg_binary
-
-
+   
+ 
+   
   On Error Resume Next
    SetValue = -1  '-- defaults to invalid path error.
    If Len(TypeIn_) = 0 Then 
      Typ_ = Exists(Path_)
-       If Len(Typ_) = 0 Then 
-			If VarType(ValData_) = vbString Then
-				Typ_ = "REG_SZ"
-			ElseIf IsArray(ValData_) or LCase(Left(ValData_, Len("hex:"))) = "hex:" Then
+       If Len(Typ_) = 0 Then
+       		' vbArray = 8192
+       		' vbInteger = 2
+       		' vbString = 8
+       		vbArrayInteger = 8194 ' 8192 + 2
+   			vbArrayString = 8200 ' 8192 + 8
+       		
+       		If VarType(ValData_) = vbArrayInteger or LCase(Left(ValData_, Len("hex:"))) = "hex:" Then
 				Typ_ = "REG_BINARY"
+			ElseIf VarType(ValData_) = vbString Then
+				If InStr(ValData_, "%") Then
+					' http://regexr.com
+					' String should start with % and end with %.
+					' It can not contain < > | & ^ (http://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/set.mspx?mfr=true)
+					Set RegEx_ = New RegExp
+					RegEx_.Global = True
+					RegEx_.Pattern = "\B%([^\<\>\|\&\^]{1,})%\B"
+					Set REsult_ = RegEx_.Execute(ValData_)
+					
+					If REsult_.Count > 0 Then
+						'MsgBox Result.Count & vbCrLf & Result.Item(0).Value
+						Typ_ = "REG_EXPAND_SZ"
+					Else
+						Typ_ = "REG_SZ"
+					End If	
+				Else
+					Typ_ = "REG_SZ"
+				End If
 			ElseIf VarType(ValData_) = vbInteger or VarType(ValData_) = vbLong or VarType(ValData_) = vbBoolean then 
 				Typ_ = "REG_DWORD"
+			ElseIf VarType(ValData_) = vbArrayString Then
+				Typ_ = "REG_MULTI_SZ"
+			ElseIf VarType(ValData_) = vbCurrency Then
+				Typ_ = "REG_QWORD"
 			End If 
 	   End If
    Else
@@ -323,11 +374,20 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
         If (LKey_ = 0) Then 
            SetValue = -2  '-- invalid hKey.
            Exit Function
+        ElseIf IsEmpty(Provider_) Or Processor_ = "x86" And Typ_ = "REG_QWORD" Then
+           SetValue = -3 '-- os arch mismatch
+           Exit Function
         End If   
   
    '-- create a key if it does not exist ------------
   iRet_ = EnumKeys(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1), AKeys)
-  If iRet_ = -3 Then CreateKey(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1))
+  If iRet_ = -3 Then 
+  	iRet_ = CreateKey(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1))
+  	If iRet_ <> 0 Then
+  		SetValue = iRet_
+  		Exit Function
+  	End If
+  End If
   
   Set Ctx_ = CreateObject("WbemScripting.SWbemNamedValueSet")
   Ctx_.Add "__ProviderArchitecture", Provider_
@@ -426,10 +486,10 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
    Select Case iRet_
      Case 0
           SetValue = 0   'success.
-     Case 2 '-- invalid key path 
-          SetValue = -3  
+     'Case 2 '-- invalid key path 
+     '     SetValue = -4  
      Case -2147217405   '--  access denied  H80041003
-          SetValue = -4
+          SetValue = -5
      Case Else
           SetValue = iRet_  '-- some other error.  
     End Select
@@ -453,6 +513,8 @@ Public Function CreateKey(Path_)
     CreateKey = -2
   LKey_ = GetHKey(sKey_)
      If (LKey_ = 0) Then Exit Function
+    CreateKey = -3
+     If IsEmpty(Provider_) Then Exit Function
      
   If Right(Path1_, 1) = "\" Then Path1_ = Left(Path1_, (len(Path1_) - 1))
   'iRet_ = Reg1_.CreateKey(LKey_, Path1_)
@@ -469,14 +531,14 @@ Public Function CreateKey(Path_)
   iRet_ = Outparams_.ReturnValue
   
    Select Case iRet_
-        Case 0
-           CreateKey = 0  '-- OK.
-        Case 2
-           CreateKey = -3
-        Case -2147217405   '--  access denied  H80041003
+        Case 0			   	  '-- OK.
+           CreateKey = 0  
+        Case 2             	  '-- invalid key
            CreateKey = -4
+        Case -2147217405      '--  access denied  H80041003
+           CreateKey = -5
         Case Else
-           CreateKey = -5  '-- some other error.  
+           CreateKey = iRet_  '-- some other error.  
     End Select
 
 End Function
@@ -495,6 +557,8 @@ Public Function Delete(Path_)
      Delete = -2  ' invalid hkey.
   LKey_ = GetHKey(sKey_)
     If (LKey_ = 0) Then Exit Function
+     Delete = -3
+    If IsEmpty(Provider_) Then Exit Function
     
     If Right(Path1_, 1) = "\" Then
        Path1_ = Left(Path1_, (len(Path1_) - 1))
@@ -526,9 +590,9 @@ Public Function Delete(Path_)
         Case -2  ' returned from DeleteKey
           Delete = -2
         Case 2
-          Delete = -3 ' value does not exists.
+          Delete = -4 ' value does not exists.
         Case -2147217405   '--  access denied  H80041003
-          Delete = -4
+          Delete = -5
        Case Else
           Delete = iRet_  '-- some other error.  
     End Select
@@ -609,7 +673,7 @@ Private Function GetHKey(sKey1_)
   	If Processor_ = "AMD64" Then
   		Provider_ = 64
   	Else
-  		Provider_ = 32
+  		Provider_ = Empty
   	End If
   Else
   	Provider_ = 32
@@ -652,6 +716,8 @@ Private Function ConvertType(TypeIn)
         ConvertType = "REG_DWORD"
      Case 7
         ConvertType = "REG_MULTI_SZ"
+     Case 11
+     	ConvertType = "REG_QWORD"
      
      ' Compatibility Layer 
      Case "S"
@@ -664,6 +730,8 @@ Private Function ConvertType(TypeIn)
      	ConvertType = "REG_DWORD"
      Case "M"
      	ConvertType = "REG_MULTI_SZ"
+     Case "Q"
+     	ConvertType = "REG_QWORD"
      
      Case Else
        ConvertType = ""
