@@ -14,7 +14,9 @@ The idea is to:
 1. Create/Set Value on Registry.
 1. Create Key on Registry.
 
-Requirements: Windows 2000 or after (95, 98, NT 4 with WMI Core 1.5).
+## Requirements
+
+Windows 2000 or after (95, 98, NT 4 with WMI Core 1.5).
 
 For Windows 2000, apply Hotfix KB817478 to dump HKEY_USERS properly.
 
