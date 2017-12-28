@@ -274,7 +274,7 @@ Sub QWORD2Arr8 (ByVal q, ByRef a)
 	w = vu * &h80: for i=0 to 7: a(i)=a(i)+w-int(w/256.0)*256: w=int(w / &h100): next
 	w = vu * &h96: for i=1 to 7: a(i)=a(i)+w-int(w/256.0)*256: w=int(w / &h100): next
 	w = vu * &h98: for i=2 to 7: a(i)=a(i)+w-int(w/256.0)*256: w=int(w / &h100): next
-	'' Fixup carry
+	'' Fix up carry
 	For i=0 To 7-1
 		a(i+1)=a(i+1)+int(a(i) / &h100)
 		a(i)=a(i) AND &hFF

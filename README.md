@@ -23,24 +23,22 @@ In all cases, WMI must be running for this class to work. On NT systems (2000/XP
 ## WSH Limitations:
 
  * Cannot get unexpanded REG_EXPAND_SZ value if value name includes "\\".
- * If the key does not contain any explicit value names, the program cannot tell apart
-   the key's default value from undefined or REG_NONE.
-   The program always emits as default value undefined (FLG_ADDREG_KEYONLY).
- * If the key does not contain any explicit value names, and the key itself has REG_EXPAND_SZ
-   as the default value, and it does not include any expandable string (%value%),
-   the program cannot tell its expandability. Program emits the default value as REG_SZ.
+ * EnumVals will include the key's default value only if it is not blank (WMI only returns it if there is content).
+ * WMI seems to often, perhaps always, return "REG_EXPAND_SZ" for plain string values, but it 
+   generally doesn't matter. A value that WMI says is "REG_EXPAND_SZ" can still be read or 
+   written as "REG_SZ", and when calling GetValue the Type parameter can be sent as "", 
+   leaving the GetValue function to handle the ambiguity.
  * Windows 2000, 2003 cannot read REG_QWORD values, as it lacks GetQWORDValue() method.
  * Cannot get REG_RESOURCE_LIST (type 8), REG_FULL_RESOURCE_REQUIREMENTS_LIST (type 10) values
    (you probably do not want them either).
  * Cannot properly get invalid REG_DWORD values having non-4byte length.
  * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus, memory-leak-ish values 
    due to unknown bug in the system.
-   (several occurence when dumping the whole HKEY_LOCAL_MACHINE)
+   (several occurrence when dumping the whole HKEY_LOCAL_MACHINE)
 
  Note:
  * Dumping full tree of HKLM could take significant amount of time
    with a high CPU load. (HKLM dump of Windows Vista yields ~160MB file)
- * By default, refuses to dump >16kB REG_BINARY. Specify "-s bytes#" to change.
  
 ## Building docs
 
