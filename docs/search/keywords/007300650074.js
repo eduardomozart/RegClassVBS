@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("set",["Function"],[["SetValue",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.SetValue","VisualBasicClass:CWMIReg:SetValue"]]]]);

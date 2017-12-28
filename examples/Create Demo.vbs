@@ -27,12 +27,12 @@ iRet = CR.CreateKey("HKCU\software\microsoft\blah1\blah2\blah3\")
    End If   
    
          A1 = Array(34, 23, 1, 0, 0, 255, 32, 100)
-      iRet = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\BinVal", A1, "B")
-      iRet2 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\StrVal", "Some string value.", "S")
-      iRet3 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal", 60, "D")
+      iRet = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\BinVal", A1, "REG_BINARY")
+      iRet2 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\StrVal", "Some string value.", "REG_SZ")
+      iRet3 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal", 60, "REG_DWORD")
         A2 = Array("first multi string", "second multi string", "third multi string")
-      iRet4 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\MultiVal", A2, "M")
-	  iRet5 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal64", 60, "Q")
+      iRet4 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\MultiVal", A2, "REG_MULTI_SZ")
+	  iRet5 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal64", 60, "REG_QWORD")
 
        
         MsgBox "Attempt to set 5 values, binary, string, dword, multi-string and qword. Return codes are:" & vbCrLf & iRet & vbCrLf & iRet2 & vbCrLf & iRet3 & vbCrLf & iRet4 & vbCrLf & iRet5

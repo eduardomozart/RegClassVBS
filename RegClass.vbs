@@ -1,44 +1,44 @@
+'-----------------------------------------------------------------------------
+' Class: CWMIReg
+' 
+' WMI-derived Registry class for VBScript. 
 '
-'! WMI-derived Registry class for VBScript. 
+' All variables in this class have "_" appended.
+' Unfortunately, that makes the code a bit more difficult to read. It was done in order to
+' avoid possible conflicts with variable names in code in scripts that use the class.
 '
-'! @author  Joe Priestley (2004-2008) / Eduardo Mozart de Oliveira (2014-2017)
-'! @date    2017-12-27
-'! @version 2.7
-'!
-' References:
-'	Windows DDK, INF AddReg Directive <URL:http://msdn.microsoft.com/en-us/library/ff546320.aspx>
-'	WMI Reference, StdRegProv Class <URL:http://msdn.microsoft.com/en-us/library/aa393664.aspx>
+' Version:
 '
-' WSH Limitations:
-' * Cannot get unexpanded REG_EXPAND_SZ value if valuename includes "\".
-' * If the key does not contain any explicit valuenames, the program cannot tell apart
-'   the key's default value from undefined or REG_NONE.
-'   The program always emits as default value undefined (FLG_ADDREG_KEYONLY).
-' * If the key does not contain any explicit valuenames, and the key itself has REG_EXPAND_SZ
-'   as the default value, and it does not include any expandable string (%value%),
-'   the program cannot tell its expandability. Program emits the default value as REG_SZ.
-' * Windows 2000, 2003 cannot read REG_QWORD values, as it lacks GetQWORDValue() method.
-' * Cannot get REG_RESOURCE_LIST(type 8), REG_FULL_RESOURCE_REQUIREMENTS_LIST(type 10) values.
-'    (you probably do not want them either)
-' * Cannot properly get invalid REG_DWORD values having non-4byte length.
-' * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus,memory-leak-ish values 
-'   due to unknown bug in the system.
-'   (several occurence when dumping the whole HKEY_LOCAL_MACHINE)
-' * On Windows 2000 SP4, dumping "HKU" (HKEY_USERS) fails.
-'   Install a hotfix, http://support.microsoft.com/kb/817478 to replace WMI stdprov.dll .
+' 	2.7
 '
-' Note:
-' * Dumping full tree of HKLM could take significant amount of time
-'   with a high CPU load. (HKLM dump of Windows Vista yields ~160MB file)
-' * By default, refuses to dump >16kB REG_BINARY. Specify "-s bytes#" to change.
+' Author:
 '
-
-'-- ########################## BEGIN CLASS #####################################
-'  All variables in this class all have "_" appended.
-'  Unfortunately, that makes the code a bit more difficult to read. It was done in order to
-'  avoid possible conflicts with variable names in code in scripts that use the class.
-
-
+' 	* Joe Priestley (2004-2008)
+'	* Eduardo Mozart de Oliveira (2014-2017)
+'
+' Data Type:
+'
+' 	REG_SZ        - A string value.
+' 	REG_EXPAND_SZ - An expanded string data value. The environment variable specified in the string must exist for the string to be expanded when you call GetValue.
+' 	REG_BINARY    - An array of binary data values.
+' 	REG_DWORD     - A numeric data value.
+' 	REG_MULTI_SZ  - A list of strings. The SetValue method accepts an array of strings as the parameter that determines the values of the entry. Note that if you use the SetValue method to append to an existing multistring-valued entry rather than create a new one, you have to first use the GetValue method to retrieve the existing list of strings. This is because SetValue overwrites any existing value. 
+' 	REG_QWORD     - A QWORD data value for the named value.
+'
+' Error Codes:
+'
+' Most of the functions return error codes. There are standard error codes (negative numbers) that mean the same for all functions.
+'
+' -1 - Invalid Key Path
+' -2 - Invalid HKey
+' -3 - OS arch mismatch (Example: Assigning a QWord into a 32-bit OS) 
+' -4 - Permission denied
+' < 0 - Other error codes specific to the functions. See <https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx> (WbemErrorEnum)
+'
+' See Also:
+' 
+' 	WMI Reference, StdRegProv Class <http://msdn.microsoft.com/en-us/library/aa393664.aspx>
+'
 Class CWMIReg
 	Private HKCR_ '! HKEY_CLASSES_ROOT constant (StdRegProv).
 	Private HKCU_ '! HKEY_CURRENT_USER constant (StdRegProv).
@@ -66,41 +66,6 @@ Class CWMIReg
 	Private vtQWord_ '! 64-bit number.
 	' ValueType - end
 	
-	'! No value type.
-	Public Property Get vtNone
-		vtNone = vtNone_
-	End Property
-	
-	'! Nul terminated string.
-	Public Property Get vtString
-		vtString = vtString_
-	End Property
-	
-	'! Nul terminated string (with environment variable references).
-	Public Property Get vtExpandString
-		vtExpandString = vtExpandString_
-	End Property
-	
-	'! Free form binary.
-	Public Property	Get vtBinary
-		vtBinary = vtBinary_
-	End Property
-	
-	'! 32-bit number.
-	Public Property Get vtDWord
-		vtDWord = vtDWord_
-	End Property
-	
-	'! Multiple strings.
-	Public Property Get vtMultiString
-		vtMultiString = vtMultiString_
-	End Property
-	
-	'! 64-bit number.
-	Public Property Get vtQWord
-		vtQWord = vtQWord_
-	End Property
-	
 	'! Enable or disable debug logging. If enabled, debug messages are 
 	'! logged to the enabled facilities. Otherwise debug messages are 
 	'! silently discarded. This property is disabled by default.
@@ -113,15 +78,22 @@ Class CWMIReg
 	End Property
 
 
-'---------------------------------------------------- Exists -----------------------------
-'! The class's Exists function uses key or value enumeration to check whether a key or value exists, and also returns the data type for existing values.
-'!
-'! @param  Path_   Add "\" for keys.
-'! @return Returns type of data ("REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_MULTI_SZ", "REG_QWORD") if value, "K" if key, or 0 if not found. (Note that WMI seems to often, perhaps always, return "REG_EXPAND_STRING" for plain string values, but it generally doesn't matter. A value that WMI says is "REG_EXPAND_SZ" can still be read or written as "REG_SZ", and when calling GetValue the Type parameter can be sent as "", leaving the GetValue function to handle the ambiguity.) 
-'!
+'-----------------------------------------------------------------------------
+' Function: Exists
+'
+' The class's Exists function uses key or value enumeration to check whether a key or value exists, and also returns the data type for existing values.
+'
+' Parameters:
+'
+' 	Path_  - Add "\" for keys.
+'
+' Returns:
+'
+' Returns data type if value, "K" if key, or "" if not found. (Note that WMI seems to often, perhaps always, return "REG_EXPAND_SZ" for plain string values, but it generally doesn't matter. A value that WMI says is "REG_EXPAND_SZ" can still be read or written as "REG_SZ", and when calling GetValue the Type parameter can be sent as "", leaving the GetValue function to handle the ambiguity.) 
+'
 Public Function Exists(Path_)
 	Dim i2_, i3_, AVals_, ATypes_, s1_, Pt1_, sName_, Path1_, IsKey_
-	Exists = vtNone_
+	Exists = ""
 	
 	On Error Resume Next
 	s1_ = Path_
@@ -157,20 +129,27 @@ Public Function Exists(Path_)
 	Next    
 End Function
 
-'--------------------------------------------- GetValue -----------------------------------------------------
-'! GetValue returns the the value data, and also works to test the existence of a value.
-'!
-'! @param  Path_    The source array.
-'! @return On success function returns value data. The method returns a string value that is "" (empty) if value does not exist. If the function fails, the return value is a nonzero error code.
-'! 
-'! @see https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx (WbemErrorEnum) 
+'-----------------------------------------------------------------------------
+' Function: GetValue
+'
+' GetValue returns the the value data, and also works to test the existence of a value.
+'
+' Parameters:
+'
+' 	Path_  - The source array.
+'
+' Returns:
+'
+' On success function returns value data. The method returns a string value that is "" (empty) if value does not exist. Otherwise the return can be a standard error code from -1 to -4 (see *Error Codes*). If the function fails, the return value is a negative error code.
+'
+'
 Public Function GetValue(Path_)
 	Dim Path1_, sKey_, LKey_, iRet_, Val_, Pt1_, ValName_, Typ_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
   
 	On Error Resume Next
     Typ_ = Exists(Path_)
-		If Typ_ = vtNone_ Then Exit Function
+		If Len(Typ_) = 0 Then Exit Function
 
 	Pt1_ = InStr(1, Path_, "\")
 	If (Pt1_ > 0) Then
@@ -219,7 +198,7 @@ Public Function GetValue(Path_)
 			ValName_ = Right(Path1_, (len(Path1_) - Pt1_))
 			Path1_ = Left(Path1_, (Pt1_ - 1))    
 			Select Case Typ_
-				Case vtString_
+				Case "REG_SZ"
 					'iRet_ = Reg1_.GetStringValue(LKey_, Path1_, ValName_, Val_)
 					Set Inparams_ = Reg1_.Methods_("GetStringValue").Inparameters
 					Inparams_.Hdefkey = LKey_
@@ -229,7 +208,7 @@ Public Function GetValue(Path_)
 					Set Outparams_ = Reg1_.ExecMethod_("GetStringValue", Inparams_,,Ctx_) 
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.sValue
-				Case vtExpandString_
+				Case "REG_EXPAND_SZ"
 					'iRet_ = Reg1_.GetExpandedStringValue(LKey_, Path1_, ValName_, Val_)
 					Set Inparams_ = Reg1_.Methods_("GetExpandedStringValue").Inparameters
 					Inparams_.Hdefkey = LKey_
@@ -239,7 +218,7 @@ Public Function GetValue(Path_)
 					Set Outparams_ = Reg1_.ExecMethod_("GetExpandedStringValue", Inparams_,,Ctx_) 
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.sValue
-				Case vtBinary_
+				Case "REG_BINARY"
 					'iRet_ = Reg1_.GetBinaryValue(LKey_, Path1_, ValName_, Val_)
 					Set Inparams_ = Reg1_.Methods_("GetBinaryValue").Inparameters
 					Inparams_.Hdefkey = LKey_
@@ -249,7 +228,7 @@ Public Function GetValue(Path_)
 					Set Outparams_ = Reg1_.ExecMethod_("GetBinaryValue", Inparams_,,Ctx_) 
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.uValue
-				Case vtDWord_
+				Case "REG_DWORD"
 					'iRet_ = Reg1_.GetDWORDValue(LKey_, Path1_, ValName_, Val_)
 					Set Inparams_ = Reg1_.Methods_("GetDWORDValue").Inparameters
 					Inparams_.Hdefkey = LKey_
@@ -259,7 +238,7 @@ Public Function GetValue(Path_)
 					Set Outparams_ = Reg1_.ExecMethod_("GetDWORDValue", Inparams_,,Ctx_) 
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.uValue
-				Case vtMultiString_  
+				Case "REG_MULTI_SZ"  
 					'iRet_ = Reg1_.GetMultiStringValue(LKey_, Path1_, ValName_, Val_)
 					Set Inparams_ = Reg1_.Methods_("GetMultiStringValue").Inparameters
 					Inparams_.Hdefkey = LKey_
@@ -269,7 +248,7 @@ Public Function GetValue(Path_)
 					Set Outparams_ = Reg1_.ExecMethod_("GetMultiStringValue", Inparams_,,Ctx_) 
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.sValue
-				Case vtQWord_
+				Case "REG_QWORD"
 					Set Inparams_ = Reg1_.Methods_("GetQWORDValue").Inparameters
 					Inparams_.Hdefkey = LKey_
 					Inparams_.Ssubkeyname = Path1_ 
@@ -279,19 +258,26 @@ Public Function GetValue(Path_)
 					iRet_ = Outparams_.ReturnValue
 					GetValue = Outparams_.uValue
 				Case Else
-				Exit Function  
+					Exit Function  
 			End Select
 		End If ' If Typ_ = "K"
 	End If
 End Function
 
-'---------------------------------------------------- EnumKeys -----------------------------
-'! Returns list of subkeys in a key.
-'! 
-'! @param  Path_   The key to be enumerated. Path may have "\" at end or not.
-'! @param  AKeys_  An array of key names.
-'! @return Function returns number of subkeys. Greater than 0 is the count of subkeys. Zero indicates no subkeys. Otherwise the return can be a standard error code from -1 to -4 (see README). If the function fails, the return value is a nonzero error code. AKeys contains subkey names.
-'! 
+'-----------------------------------------------------------------------------
+' Function: EnumKeys
+'
+' Returns list of sub keys in a key.
+'
+' Parameters:
+'
+'	Path_ - The key to be enumerated. Path may have "\" at end or not.
+'	AKeys_ - An array of key names.
+'
+' Returns:
+'
+' Function returns number of sub keys. Greater than 0 is the count of sub keys. Zero indicates no sub keys. Otherwise the return can be a standard error code from -1 to -4 (see *Error Codes*). If the function fails, the return value is a negative error code. AKeys contains sub key names.
+'
 Public Function EnumKeys(Path_, AKeys_)
 	Dim iRet_, sKey_, LKey_, Pt1_, Pt2, Path1_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
@@ -350,14 +336,21 @@ Public Function EnumKeys(Path_, AKeys_)
 	End Select
 End Function
 
-'---------------------------------------------------- EnumVals -----------------------------
-'! Return value names and type from a given key.
-'!
-'! @param  Path_      The source key.
-'! @param  AValsOut_  An array of value names. The value array will include the key's default value only if it is not blank (WMI only returns it if there is content). Also, the default value is not necessarily found in array(0). The array seems to return values in the order that they were created.
-'! @param  ATypesOut_ An array of data types.
-'! @return If return is > 0 it represents the number of values in the key. A return of 0 indicates no values present and no data saved in the default value. The value count is the same as UBound(AValsOut) + 1. For example, if a given key has 3 values written, EnumVals will return 3 and the empty default value will be ignored. If you then assign a string to the default value in that key, EnumVals will return 4. -1 to -4 are the standard error codes (see above). If the function fails, the return value is a nonzero error code.
-'!
+'-----------------------------------------------------------------------------
+' Function: EnumVals
+'
+' Return value names and type from a given key.
+'
+' Parameters:
+'
+' 	Path_      - The source key.
+'	AValsOut_  - An array of value names. The value array will include the key's default value only if it is not blank (WMI only returns it if there is content). Also, the default value is not necessarily found in array(0). The array seems to return values in the order that they were created.
+'	ATypesOut_ - An array of data types.
+'
+' Returns:
+'
+' If return is > 0 it represents the number of values in the key. A return of 0 indicates no values present and no data saved in the default value. The value count is the same as UBound(AValsOut) + 1. For example, if a given key has 3 values written, EnumVals will return 3 and the empty default value will be ignored. If you then assign a string to the default value in that key, EnumVals will return 4. -1 to -4 are the standard error codes (see *Error Codes*). If the function fails, the return value is a negative error code.
+'
 Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 	Dim sKey_, Pt1_, Pt2_, LKey_, iRet_, Path1_, iCnt_, Val_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
@@ -388,7 +381,7 @@ Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 	Set Svc_ = Loc_.ConnectServer("","root\default","","",,,,Ctx_)
 	Set Reg1_ = Svc_.Get("StdRegProv") 
 		
-	Set Inparams_ = Reg1_.Methods_("SetStringValue").Inparameters
+	Set Inparams_ = Reg1_.Methods_("EnumValues").Inparameters
 	Inparams_.Hdefkey = LKey_
 	Inparams_.Ssubkeyname = Path1_ 
 	
@@ -402,7 +395,11 @@ Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 			If (IsArray(AValsOut_) = False) Then 
 				EnumVals = 0  '-- no values in key.
 			Else  '-- values found.
-				EnumVals = UBound(AValsOut_) + 1  
+				EnumVals = UBound(AValsOut_) + 1
+				For iCnt_ = 0 to UBound(ATypesOut_)
+				   Val_ = ATypesOut_(iCnt_)
+				   ATypesOut_(iCnt_) = ConvertType(Val_)
+				Next   
 			End If  
 		Case 2 '-- invalid key Path
 			EnumVals = -1
@@ -413,27 +410,27 @@ Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 	End Select
 End Function
 
-'---------------------------------------------------- SetValue -----------------------------
-'! Set value data.
-'!
-'! - REG_SZ:        A string value.
-'! - REG_EXPAND_SZ: An expanded string data value. The environment variable specified in the string must exist for the string to be expanded when you call GetValue.
-'! - REG_MULTI_SZ:  A list of strings. The SetValue method accepts an array of strings as the parameter that determines the values of the entry. Note that if you use the SetValue method to append to an existing multistring-valued entry rather than create a new one, you have to first use the GetValue method to retrieve the existing list of strings. This is because SetValue overwrites any existing value. 
-'! - REG_DWORD:     A numeric data value.
-'! - REG_BINARY:    An array of binary data values.
-'! - REG_QWORD:     A QWORD data value for the named value. The default value is "3".
-'!
-'! @param  Path_    A key that contains the named value to be set. If key does not exist the key path will be created. You can specify an existing named value (update) or a new named value (create). Specify an empty string to set the data value for the default named value.
-'! @param  ValData_ ValData is value data. Data type of the ValData parameter varies by type. For String or XString values a string must be sent. DWord values must be numeric. Binary values must be sent as an array of byte values (numbers from 0 to 255). A MultiString value must be sent as an array of strings.
-'! @param  TypeIn_  (Optional) A data type ("REG_SZ", "REG_EXPAND_SZ", "REG_MULTI_SZ", "REG_DWORD", "REG_BINARY", "REG_QWORD"). Use "" to SetValue function detect data type to use. If no type is sent then function will find type, but if value does not already exist when no type is sent it will default to string. Therefore, the type should always be sent when available. 
-'! @return The method returns a int value that is 0 (zero) if successful.  -1 to -4 are standard errors (see README). -5 = type mismatch (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -6 = invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
-'!
-'! @see https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx (WbemErrorEnum)
+'-----------------------------------------------------------------------------
+' Function: SetValue
+'
+' Set value data.
+'
+' Parameters:
+'
+' 	Path_      - A key that contains the named value to be set. If key does not exist the key path will be created. You can specify an existing named value (update) or a new named value (create). Specify an empty string to set the data value for the default named value.
+'	AValsOut_  - ValData is value data. Data type of the ValData parameter varies by type. For String or XString values a string must be sent. DWord values must be numeric. Binary values must be sent as an array of byte values (numbers from 0 to 255). A MultiString value must be sent as an array of strings.
+'	TypeIn_    - (Optional) A data type. Use "" to SetValue function detect data type to use. If no type is sent then function will find type, but if value does not already exist when no type is sent it will default to string. Therefore, the type should always be sent when available. 
+'
+' Returns:
+'
+' The method returns a int value that is 0 (zero) if successful.  -1 to -4 are standard errors (see *Error Codes*). -5 = type mismatch (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -6 = invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
+'
 Public Function SetValue(Path_, ValData_, TypeIn_)
-	Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_, Typ_
+	Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_ 
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
    
 	'-- Typ_
+	Dim Typ_ : Typ_ = TypeIn_
 	Dim vbArrayInteger, vbArrayString
 	Dim RegEx_, REsult_ '-- reg_expand_sz
    
@@ -444,7 +441,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 	SetValue = -1  '-- defaults to invalid path error.
 	If Len(TypeIn_) = 0 Then 
 		Typ_ = Exists(Path_)
-		If Typ_ = vtNone_ Then
+		If Len(Typ_) = 0 Then
 			' vbArray = 8192
        		' vbInteger = 2
        		' vbString = 8
@@ -452,12 +449,12 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
    			vbArrayString = 8200 ' 8192 + 8
        		
        		If VarType(ValData_) = vbArrayInteger or LCase(Left(ValData_, Len("hex:"))) = "hex:" Then
-				Typ_ = vtBinary_
+				Typ_ = "REG_BINARY"
 			ElseIf VarType(ValData_) = vbString Then
 				If InStr(ValData_, "%") Then
-					' http://regexr.com
+					' <http://regexr.com>
 					' String should start with % and end with %.
-					' It can not contain < > | & ^ (http://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/set.mspx?mfr=true)
+					' It can not contain < > | & ^ <http://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/set.mspx?mfr=true>
 					Set RegEx_ = New RegExp
 					RegEx_.Global = True
 					RegEx_.Pattern = "\B%([^\<\>\|\&\^]{1,})%\B"
@@ -465,28 +462,28 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 					
 					If REsult_.Count > 0 Then
 						'MsgBox Result.Count & vbCrLf & Result.Item(0).Value
-						Typ_ = vtExpandString_
+						Typ_ = "REG_EXPAND_SZ"
 					Else
-						Typ_ = vtString_
+						Typ_ = "REG_SZ"
 					End If	
 				Else
-					Typ_ = vtString_
+					Typ_ = "REG_SZ"
 				End If
 			ElseIf VarType(ValData_) = vbInteger or VarType(ValData_) = vbLong or VarType(ValData_) = vbBoolean then 
-				Typ_ = vtDWord_
+				Typ_ = "REG_DWORD"
 			ElseIf VarType(ValData_) = vbArrayString Then
-				Typ_ = vtMultiString_
+				Typ_ = "REG_MULTI_SZ"
 			ElseIf VarType(ValData_) = vbCurrency Then
-				Typ_ = vtQWord_
+				Typ_ = "REG_QWORD"
 			End If 
 		End If ' If Typ_ = vtNone_
 	Else ' If Len(TypeIn_) = 0
-		If Not IsNumeric(TypeIn_) Then Typ_ = ConvertType(TypeIn_)
+		If IsNumeric(TypeIn_) Then Typ_ = ConvertType(TypeIn_)
 	End If    
    
-	If Typ_ = vtNone_ Then
+	If Len(Typ_) = 0 Then
 		' Exit Function
-		Typ_ = vtString
+		Typ_ = "REG_SZ"
 	End If
    
     Pt1_ = InStr(1, Path_, "\")
@@ -541,7 +538,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 		Path1_ = Left(Path1_, (Pt1_ - 1))     
         
 		Select Case Typ_
-			Case vtString_
+			Case "REG_SZ"
 				'iRet_ = Reg1_.SetStringValue(LKey_, Path1_, ValName_, ValData_)
 				Set Inparams_ = Reg1_.Methods_("SetStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -551,7 +548,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				
 				Set Outparams_ = Reg1_.ExecMethod_("SetStringValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
-			Case vtExpandString_
+			Case "REG_EXPAND_SZ"
 				'iRet_ = Reg1_.SetExpandedStringValue(LKey_, Path1_, ValName_, ValData_)
 				Set Inparams_ = Reg1_.Methods_("SetExpandedStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -561,7 +558,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				
 				Set Outparams_ = Reg1_.ExecMethod_("SetExpandedStringValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
-			Case vtBinary_
+			Case "REG_BINARY"
 				'iRet_ = Reg1_.SetBinaryValue(LKey_, Path1_, ValName_, ValData_)
 				Set Inparams_ = Reg1_.Methods_("SetBinaryValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -580,7 +577,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				
 				Set Outparams_ = Reg1_.ExecMethod_("SetBinaryValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
-			Case vtDWord_
+			Case "REG_DWORD"
 				'iRet_ = Reg1_.SetDWORDValue(LKey_, Path1_, ValName_, ValData_)
 				Set Inparams_ = Reg1_.Methods_("SetDWORDValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -590,7 +587,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				
 				Set Outparams_ = Reg1_.ExecMethod_("SetDWORDValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
-			Case vtMultiString_  
+			Case "REG_MULTI_SZ"  
 				'iRet_ = Reg1_.SetMultiStringValue(LKey_, Path1_, ValName_, ValData_)
 				Set Inparams_ = Reg1_.Methods_("SetMultiStringValue").Inparameters
 				Inparams_.Hdefkey = LKey_
@@ -600,7 +597,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				
 				Set Outparams_ = Reg1_.ExecMethod_("SetMultiStringValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
-			Case vtQWord_
+			Case "REG_QWORD"
 				Set Inparams_ = Reg1_.Methods_("SetQWORDValue").Inparameters
 				Inparams_.Hdefkey = LKey_
 				Inparams_.Ssubkeyname = Path1_ 
@@ -632,13 +629,19 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
     End Select
 End Function
 
-'---------------------------------------------------- CreateKey -----------------------------
-'! Create a key or value. Path can have "\" at end or not (since the function is unambiguous), but must not have "\" if path is an HKey like "HKLM".
-'!
-'! @param  Path_   The key to be created. The CreateKey method creates all subkeys specified in the path that do not exist. For example, if MyKey and MySubKey do not exist in the following path, the CreateKey method creates both keys: HKEY_CURRENT_USER\SOFTWARE\MyKey\MySubKey.
-'! @return The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a nonzero error code.
-'!
-'! @see https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx (WbemErrorEnum) 
+'-----------------------------------------------------------------------------
+' Function: CreateKey
+'
+' Create a key or value. Path can have "\" at end or not (since the function is unambiguous), but must not have "\" if path is an HKey like "HKLM".
+'
+' Parameters:
+'
+' 	Path_ - The key to be created. The CreateKey method creates all sub keys specified in the path that do not exist. For example, if MyKey and MySubKey do not exist in the following path, the CreateKey method creates both keys: HKEY_CURRENT_USER\SOFTWARE\MyKey\MySubKey.
+'
+' Returns:
+'
+' The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a nonzero error code.
+'
 Public Function CreateKey(Path_)
 	Dim sKey_, LKey_, Path1_, iRet_, Pt1_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
@@ -688,13 +691,19 @@ Public Function CreateKey(Path_)
 	
 End Function
 
-'---------------------------------------------------- Delete -----------------------------
-'! Delete a key (using DeleteKey) or value. Add "\" for keys.
-'! 
-'! @param  Path_   The key or value to be deleted. The function will enumerate subkeys when a key is being deleted and will delete the subkeys in reverse order to allow deletion of the key specified in Path. For example, if MyKey and MySubKey does exist in the following path, the Delete method deletes both keys: HKEY_CURRENT_USER\SOFTWARE\MyKey\MySubKey.
-'! @return The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a standard error code (see README) or a nonzero error code.
-'!
-'! @see https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx (WbemErrorEnum) 
+'-----------------------------------------------------------------------------
+' Function: Delete
+'
+' Delete a key (using DeleteKey) or value. Add "\" for keys.
+'
+' Parameters:
+'
+' 	Path_ - The key or value to be deleted. The function will enumerate sub keys when a key is being deleted and will delete the sub keys in reverse order to allow deletion of the key specified in Path. For example, if MyKey and MySubKey does exist in the following path, the Delete method deletes both keys: HKEY_CURRENT_USER\SOFTWARE\MyKey\MySubKey.
+'
+' Returns:
+'
+' The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a standard error code (see *Error Codes*) or a nonzero error code.
+'
 Public Function Delete(Path_)
 	Dim sKey_, LKey_, Path1_, Pt1_, ValName_, iRet_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
@@ -752,17 +761,28 @@ Public Function Delete(Path_)
 	
 End Function
 
-'---------------------------------------------------- TestPath -----------------------------
-'! Returns key level. The Delete function, since it is capable of deleting a key "tree", has a built-in safety feature. It will return error code -1 (invalid path) if the Path parameter does not contain at least 3 backslashes. That prevents the accidental deletion of the main hive keys and their direct subkeys. In other words, HKCU cannot be deleted. Nor can HKCU\Software\.
-'! - HKCU\Software\Classes\ = HKCR\ = 1
-'! - HKLM\Software\ = 2
-'! - HKCU\ControlPanel\Desktop = 3
-'! - HKLM\Software\Microsoft\Windows NT\CurrentVersion = 5
-'! 
-'! @param  PathIn_   The key to be tested.
-'! @return The method returns a int value > 0 (zero) if successful. If the function fails, the return value is a 0 (zero) error code.
-'!
-'! @see #DeleteKey
+'-----------------------------------------------------------------------------
+' Function: TestPath
+'
+' Returns key level. The Delete function, since it is capable of deleting a key "tree", has a built-in safety feature. It will return error code -1 (invalid path) if the Path parameter does not contain at least 3 backslashes. That prevents the accidental deletion of the main hive keys and their direct sub keys. In other words, HKCU cannot be deleted. Nor can HKCU\Software\.
+'
+' Parameters:
+'
+' 	PathIn_ - The key to be tested.
+'
+' Returns:
+'
+' The method returns a int value > 0 (zero) if successful. If the function fails, the return value is a 0 (zero) error code.
+'
+' - HKCU\Software\Classes\ = HKCR\ = 1
+' - HKLM\Software\ = 2
+' - HKCU\ControlPanel\Desktop = 3
+' - HKLM\Software\Microsoft\Windows NT\CurrentVersion = 5
+'
+' See Also:
+'
+'	<DeleteKey>
+'
 Public Function TestPath(PathIn_)
   ' HKCU\ControlPanel\Desktop = 3
   ' HKLM\Software\Microsoft\Windows NT\CurrentVersion = 5
@@ -814,11 +834,13 @@ End Function
  
  ' - Constructor/Destructor ---------------------------------------------------
 
- '! @brief Constructor.
- '!
- '! Set Locator (SWbemLocator) object and it's Constants.
- '! Detect the bitness (32-bit vs. 64-bit) of the Windows OS.
- '! Initialize logger objects with default values, i.e. disable debug.
+'-----------------------------------------------------------------------------
+' Constructor: Class_Initialize
+'
+' - Set Locator (SWbemLocator) object and it's Constants.
+' - Detect the bitness (32-bit or 64-bit) of the Windows OS.
+' - Initialize logger objects with default values, i.e. disable debug.
+'
 Private Sub Class_Initialize()
 	On Error Resume Next
 	HKCR_ = &H80000000
@@ -843,7 +865,7 @@ Private Sub Class_Initialize()
 	
 	debugEnabled = False
 
-	'Set Reg1_ = GetObject("winMgMts:root\default:StdRegProv")
+	'Set Re'g1_ = GetObject("winMgMts:root\default:StdRegProv")
 	' If (Err.number <> 0) Then
 	'   Err.Raise 1, "WMIReg Class", "Failed to access WMI StdRegProv object. Class cannot function."
 	' End If
@@ -853,26 +875,35 @@ Private Sub Class_Initialize()
 		Err.Raise 1, "WMIReg Class", "Failed to access WMI SWbemLocator object. Class cannot function."
 	End If
   
-	' http://csi-windows.com/toolkit/csi-getosbits
+	' <http://csi-windows.com/toolkit/csi-getosbits>
 	Processor_ = GetValue("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
 End Sub 
 
  ' - Constructor/Destructor ---------------------------------------------------
 
- '! @brief Destructor.
- '!
- '! Set Locator (SWbemLocator) object to Nothing.
+'-----------------------------------------------------------------------------
+' Function: Class_Terminate
+'
+' - Set Locator (SWbemLocator) object to Nothing.
+'
 Private Sub Class_Terminate()
 	'Set Reg1_ = Nothing
 	Set Loc_ = Nothing
 End Sub
 
-'---------------------------------------------------- GetHKey -----------------------------
-'! Assign Registry Root variable with its WMI hex equivalent.
-'!
-'! @param  sKey1_   The key to be enumerated.
-'! @return Assign Registry Root variable with its WMI hex equivalent, or 0 if the operation failed.
-'!
+'-----------------------------------------------------------------------------
+' Function: GetHKey
+'
+' Assign Registry Root variable with its WMI hex equivalent. 
+'
+' Parameters:
+' 
+'	sKey1_ - The key to be enumerated.
+'
+' Returns: 
+'
+' Assign Registry Root variable with its WMI hex equivalent, or 0 if the operation failed.
+'
 Public Function GetHKey(sKey1_) 
 	If Right(sKey1_, 2) = "64" Then
 		If Processor_ = "AMD64" Then
@@ -899,28 +930,22 @@ Public Function GetHKey(sKey1_)
 	End Select      
 End Function
 
-'---------------------------------------------------- ConvertType -----------------------------
-'! Assign Type variable with its WMI hex equivalent and vice-versa.
-'!
-'! @param  TypeIn_   The Type to be enumerated.
-'! @return Assign Type variable with its WMI hex equivalent and vice-versa.
-'!
+'-----------------------------------------------------------------------------
+' Function: ConvertType
+'
+' Assign Type variable with its WMI hex equivalent and vice-versa.
+'
+' Parameters:
+' 
+'	TypeIn_   The Type to be enumerated.
+'
+' Returns: 
+'
+' Assign Type variable with its WMI hex equivalent and vice-versa. Returns "" for invalid data type. 
+'
 Public Function ConvertType(TypeIn_)
 	On Error Resume Next
 	Select Case TypeIn_
-		Case "S", "REG_SZ"
-			ConvertType = vtString_
-		Case "X", "REG_EXPAND_SZ"
-			ConvertType = vtExpandString_
-		Case "B", "REG_BINARY"
-			ConvertType = vtBinary_
-		Case "D", "REG_DWORD"
-			ConvertType = vtDWord_
-		Case "M", "REG_MULTI_SZ"
-			ConvertType = vtMultiString_
-		Case "Q", "REG_QWORD"
-			ConvertType = vtQWord_
-		
 		Case vtString_
 			ConvertType = "REG_SZ"
 		Case vtExpandString_
@@ -933,19 +958,39 @@ Public Function ConvertType(TypeIn_)
 			ConvertType = "REG_MULTI_SZ"
 		Case vtQWord_
 			ConvertType = "REG_QWORD"
-	
+			
+		Case "REG_SZ"
+			ConvertType = vtString_
+		Case "REG_EXPAND_SZ"
+			ConvertType = vtExpandString_
+		Case "REG_BINARY"
+			ConvertType = vtBinary_
+		Case "REG_DWORD"
+			ConvertType = vtDWord_
+		Case "REG_MULTI_SZ"
+			ConvertType = vtMultiString_
+		Case "REG_QWORD"
+			ConvertType = vtQWord_
+		
 		Case Else
-			ConvertType = vtNone_
-  End Select        
+			ConvertType = ""
+	End Select        
 End Function
 
-'---------------------------------------------------- EnumKeysAll -----------------------------
-'! Return list of all subkeys in a key. EnumKeysAll has been made public, in case it might be useful, but it was really written for use in deleting keys.
-'! 
-'! @param  Path_   The key to be enumerated.
-'! @param  AKeys_
-'! @return Function returns number of subkeys. AKeys returns key paths.
-'!
+'-----------------------------------------------------------------------------
+' Function: EnumKeysAll
+'
+' Return list of all sub keys in a key. EnumKeysAll has been made public, in case it might be useful, but it was really written for use in deleting keys.
+'
+' Parameters:
+' 
+'	Path_  - The key to be enumerated.
+'	AKeys_ -
+'
+' Returns: 
+'
+' Function returns number of sub keys. AKeys returns key paths.
+'
 Public Function EnumKeysAll(Path_, AKeys_)
 	Dim sList_, s2_, AK1_, AK3_, AK2_(), iRet1_, i2_, UB_, iRet2_, i3_, Path1_
     
@@ -972,14 +1017,19 @@ Public Function EnumKeysAll(Path_, AKeys_)
     EnumKeysAll = UBound(AKeys_) + 1
 End Function
 
-'---------------------------------------------------- DeleteKey -----------------------------
-'! Deletes all subkeys in path by first calling EnumKeysAll. It then deletes parent key.
-'! 
-'! @param  Path_   The key to be deleted.
-'! @return The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a nonzero error code.
-'!
-'! @see https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx (WbemErrorEnum) 
-'!
+'-----------------------------------------------------------------------------
+' Function: DeleteKey
+'
+' Deletes all sub keys in path by first calling EnumKeysAll. It then deletes parent key.
+'
+' Parameters:
+' 
+'	Path_ - The key to be deleted.
+'
+' Returns: 
+'
+' The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a nonzero error code.
+'
 Private Function DeleteKey(Path_)
 	Dim i3_, i4_, A1_, iRet_, Pt1_, s2_, hK_, sK_
 	Dim Ctx_, Svc_, Reg1_, Inparams_, Outparams_
@@ -1033,21 +1083,31 @@ Private Function DeleteKey(Path_)
 	DeleteKey = Outparams_.ReturnValue
 End Function
 
-'---------------------------------------------------- DecimalNumbers -----------------------------
-'! Convert hex string to binary Array.
-'! Author: Rems (http://www.petri.co.il/forums/showthread.php?t=46158)
-'! 
-'! @param  strHex_   The value to be converted. Example: "hex:23,00,41,00,43,00,42,00,6c,00"
-'! @return The method returns a decimal binary Array if successful.
-'!
-'! @see #SetValue
-'!
+'-----------------------------------------------------------------------------
+' Function: DecimalNumbers
+'
+' Convert hex string to binary Array.
+'
+' Author: Rems <http://www.petri.co.il/forums/showthread.php?t=46158>
+'
+' Parameters:
+' 
+'	strHex_ - The value to be converted. Example: "hex:23,00,41,00,43,00,42,00,6c,00"
+'
+' Returns: 
+'
+' The method returns a decimal binary Array if successful.
+'
+' See Also:
+'
+'	<SetValue>
+'
 Private Function DecimalNumbers(strHex_)
 	Dim arrHex_ : arrHex_ = Split(Replace(strHex_, "hex:", ""), ",") 
 	
     On Error Resume Next
     
-    ' from: http://www.petri.co.il/forums/showthread.php?t=46158
+    ' from: <http://www.petri.co.il/forums/showthread.php?t=46158>
     Dim i, strDecValues_
     For i = 0 to Ubound(arrHex_)
         If isEmpty(strDecValues_) Then

@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("del",["Function"],[["Delete",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.Delete","VisualBasicClass:CWMIReg:Delete"]]],["DeleteKey",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.DeleteKey","VisualBasicClass:CWMIReg:DeleteKey"]]]]);

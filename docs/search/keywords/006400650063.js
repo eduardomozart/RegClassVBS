@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("dec",["Function"],[["DecimalNumbers",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.DecimalNumbers","VisualBasicClass:CWMIReg:DecimalNumbers"]]]]);

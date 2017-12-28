@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("get",["Function"],[["GetHKey",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.GetHKey","VisualBasicClass:CWMIReg:GetHKey"]]],["GetValue",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.GetValue","VisualBasicClass:CWMIReg:GetValue"]]]]);

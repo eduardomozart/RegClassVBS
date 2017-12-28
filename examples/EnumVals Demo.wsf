@@ -37,15 +37,15 @@ s1 = ""
  For i2 = 0 to iRet - 1
     Val = CR.GetValue("HKLM\software\microsoft\windows\currentversion\" & A1(i2))
     Select Case CR.Exists("HKLM\software\microsoft\windows\currentversion\" & A1(i2))
-      Case CR.vtString, CR.vtExpandString, CR.vtDWord
+      Case "REG_SZ", "REG_EXPAND_SZ", "REG_DWORD"
         s1 = s1 & A1(i2) & ": " & Val & vbCrLf
-      Case CR.vtBinary
+      Case "REG_BINARY"
        s2 = ""
         For i3 = 0 to UBound(Val) 
            s2 = s2 & Val(i3) & "-"
          Next
           s1 = s1 & A1(i2) & ": " & s2 & vbCrLf
-      Case CR.vtMultiString
+      Case "REG_MULTI_SZ"
          s2 = ""
             For i3 = 0 to UBound(Val) 
            s2 = s2 & Val(i3) & "|"

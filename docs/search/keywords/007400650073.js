@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("tes",["Function"],[["TestPath",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.TestPath","VisualBasicClass:CWMIReg:TestPath"]]]]);

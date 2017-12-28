@@ -16,28 +16,35 @@ The idea is to:
 
 Requirements: Windows 2000 or after (95, 98, NT 4 with WMI Core 1.5).
 
-For Windows 2000, apply Hot-fix KB817478 to dump HKEY_USERS properly.
+For Windows 2000 SP4, apply Hotfix [KB817478](http://support.microsoft.com/kb/817478) to replace WMI `stdprov.dll` to dump HKEY_USERS properly.
 
 In all cases, WMI must be running for this class to work. On NT systems (2000/XP/Vista), WMI runs as a service. In order for this class to function the WMI service `winmgmts` must be running. Also, DCOM Server Process Launcher `DcomLaunch` must be running.
 
-## Error codes
+## WSH Limitations:
 
-Most of the functions return error codes. There are standard error codes - negative numbers - that mean the same for all functions:
+ * Cannot get unexpanded REG_EXPAND_SZ value if valuename includes "\".
+ * If the key does not contain any explicit valuenames, the program cannot tell apart
+   the key's default value from undefined or REG_NONE.
+   The program always emits as default value undefined (FLG_ADDREG_KEYONLY).
+ * If the key does not contain any explicit valuenames, and the key itself has REG_EXPAND_SZ
+   as the default value, and it does not include any expandable string (%value%),
+   the program cannot tell its expandability. Program emits the default value as REG_SZ.
+ * Windows 2000, 2003 cannot read REG_QWORD values, as it lacks GetQWORDValue() method.
+ * Cannot get REG_RESOURCE_LIST(type 8), REG_FULL_RESOURCE_REQUIREMENTS_LIST(type 10) values.
+    (you probably do not want them either)
+ * Cannot properly get invalid REG_DWORD values having non-4byte length.
+ * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus,memory-leak-ish values 
+   due to unknown bug in the system.
+   (several occurence when dumping the whole HKEY_LOCAL_MACHINE)
 
-* -1 invalid Path
-* -2 invalid HKey
-* -3 os arch mismatch
-* -4 permission denied
-* Other error codes specific to the functions.
-
+ Note:
+ * Dumping full tree of HKLM could take significant amount of time
+   with a high CPU load. (HKLM dump of Windows Vista yields ~160MB file)
+ * By default, refuses to dump >16kB REG_BINARY. Specify "-s bytes#" to change.
+ 
 ## Building docs
 
-You can build docs using [VBSdoc](http://www.planetcobalt.net/sdb/vbsdoc.shtml).
-
-```
-cscript VBSdoc.vbs /a /i:RegClassVBS.vbs /o:docs
-cscript VBSdoc.vbs /a /i:examples\ExportKeys.wsf /o:examples\docs
-```
+You can build docs using [Natural Docs](http://www.naturaldocs.org).
 
 ## Contributors
 

@@ -1,6 +1,6 @@
 <job id="ExportKey">
-<script language="VBScript" src="..\..\RegClass.vbs"/>
-<script language="VBScript" src="..\Create Demo.vbs"/>
+<script language="VBScript" src="..\RegClass.vbs"/>
+<script language="VBScript" src="Create Demo.vbs"/>
 
 <script language="VBScript">
 '//----------------------------------------------------------------------------
@@ -26,14 +26,24 @@ iRet = ExportKey("HKCU\software\microsoft\blah1\", "HKCU_software_microsoft_blah
 		
 Set CR = Nothing
 
-'---------------------------------------------------- ExportKey -----------------------------
-'! Export registry key in unicode format.
-'!  
-'! @param  Path   Full registry path. The ExportKey method exports all subkeys specified in the path. For example, if MyKey and MySubKey does exist in the following path, the ExportKey method exports both keys: HKEYCURRENTUSER\SOFTWARE\MyKey\MySubKey.
-'! @param  FileName File to export data.
-'! @return The method returns a int value that is 0 (zero) if successful. If the function fails, the return value is a nonzero error code.
-'!
-'! @see http://stackoverflow.com/questions/7466447/get-hex-value-of-a-registry-key-via-vbscirpt
+'-----------------------------------------------------------------------------
+' Function: ExportKey
+'
+' The method returns number of exported sub keys if successful. If the function fails, the return value is a negative error code.
+'
+' Parameters:
+' 
+'	Path_    - Full registry path. The ExportKey method exports all sub keys specified in the path. For example, if MyKey and MySubKey does exist in the following path, the ExportKey method exports both keys: HKEYCURRENTUSER\SOFTWARE\MyKey\MySubKey.
+'	FileName - File to export data.
+'
+' Returns: 
+'
+' The method returns number of exported sub keys if successful. If the function fails, the return value is a negative error code.
+'
+' See Also:
+'
+' 	<Get Hex value of a Registry Key via VBScript: http://stackoverflow.com/questions/7466447/get-hex-value-of-a-registry-key-via-vbscirpt>. StackOverflow.
+'
 Function ExportKey(Path, FileName)
 	Dim Typ, Pt1, Path1, LKey, sKey
 	Dim iRet, A1, TempA1, i2 ' EnumKeysAll
@@ -62,17 +72,18 @@ Function ExportKey(Path, FileName)
 			Path1 = Right(Path, (Len(Path) - Pt1))
 		End If  
         
-        'Select Case UCase(Replace(sKey, "64", ""))
-		'	Case "HKLM"
-		'		sKey = "HKEY_LOCAL_MACHINE"
-		'	Case "HKCU"
-		'		sKey = "HKEY_CURRENT_USER"
-		'	Case "HKCR"
-		'		sKey = "HKEY_CLASSES_ROOT"
-		'	Case "HKU"
-		'		sKey = "HKEY_USERS" 
-        'End Select
-        'If Provider = 64 Then sKey = sKey & "64"
+		If Right(sKey1_, 2) = "64" Then Provider = 64
+		Select Case UCase(Replace(sKey, "64", ""))
+			Case "HKLM"
+				sKey = "HKEY_LOCAL_MACHINE"
+			Case "HKCU"
+				sKey = "HKEY_CURRENT_USER"
+			Case "HKCR"
+				sKey = "HKEY_CLASSES_ROOT"
+			Case "HKU"
+				sKey = "HKEY_USERS" 
+        End Select
+        If Provider = 64 Then sKey = sKey & "64"
 
 	    
 		s1 = "Windows Registry Editor Version 5.00" & vbCrLf
@@ -92,12 +103,13 @@ Function ExportKey(Path, FileName)
 			For i2 = 0 To iRet - 1
 				s3 = Right(A1(i2), (Len(A1(i2)) - InStr(1, A1(i2), "\")))
 				s3 = Left(s3, (InStrRev(s3, "\") - 1))
-				If sKey = "HKEY_LOCAL_MACHINE" And Len(s3) > 8 And UCase(Left(s3, 8)) = "SOFTWARE" And Not Processor = "x86" Then
+				If (sKey = "HKEY_LOCAL_MACHINE" Or sKey = "HKLM") And Len(s3) > 8 And UCase(Left(s3, 8)) = "SOFTWARE" And Not CR.GetValue("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE") = "x86" Then
 					s3 = "SOFTWARE\Wow6432Node\" & Right(s3, (Len(s3) - InStr(1, s3, "\")))
 				End If
 	
-				s1 = s1 & vbCrLf & "[" & sKey & "\" & s3 & "]" & vbCrLf
-				iRet2 = CR.EnumVals(sKey & "\" & s3, AVals, ATypes)
+				s1 = s1 & vbCrLf & "[" & Replace(sKey, "64", "") & "\" & s3 & "]" & vbCrLf
+				'iRet2 = CR.EnumVals(sKey & "\" & s3, AVals, ATypes)
+				iRet2 = CR.EnumVals(A1(i2), AVals, ATypes)
 				s2 = s2 & "EnumVals(" & A1(i2) & ") = " & iRet2 & vbCrLf
 				If iRet2 > 0 Then
 					For i3 = 0 to iRet2 - 1
@@ -106,16 +118,16 @@ Function ExportKey(Path, FileName)
 						s2 = s2 & "AVals(" & i3 & ") = " & AVals(i3)  & " ATypes(" & i3 & ") = " & ATypes(i3) & vbCrLf
 						If CR.Debug Then MsgBox s2
 						Select Case ATypes(i3)
-							Case CR.vtDWord
+							Case "REG_DWORD"
 								s1 =  s1 & "dword:" & Right("00000000" & LCase(Hex(CR.GetValue(A1(i2) & AVals(i3)))), 8) & vbCrLf
-							Case CR.vtBinary
+							Case "REG_BINARY"
 								s1 =  s1 & "hex:" & ToHex(CR.GetValue(A1(i2) & AVals(i3)), ATypes(i3), Len(AVals(i3))+6) & vbCrLf
-							Case CR.vtString
+							Case "REG_SZ"
 								s1 =  s1 & Chr(34) & Replace(CR.GetValue(A1(i2) & AVals(i3)), "\", "\\") & Chr(34) & vbCrLf
-							Case CR.vtQWord
+							Case "REG_QWORD"
 								q = CR.GetValue(A1(i2) & AVals(i3))
 								If IsNumeric(q) Then
-									s1 =  s1 & "hex(" & LCase(Hex(ATypes(i3))) & "):"
+									s1 =  s1 & "hex(" & LCase(Hex(CR.ConvertType(ATypes(i3)))) & "):"
 									QWORD2Arr8 q, a
 									For I=LBound(a) To UBound(a)
 										s1 = s1 & LCase(Right(0 & Hex(a(I)), 2)) & ","
@@ -123,7 +135,7 @@ Function ExportKey(Path, FileName)
 									s1 = Left(s1, Len(s1)-1) & vbCrLf
 								End If
 							Case Else
-								s1 =  s1 & "hex(" & LCase(Hex(ATypes(i3))) & "):" & ToHex(CR.GetValue(A1(i2) & AVals(i3)), ATypes(i3), Len(AVals(i3))+10) & vbCrLf
+								s1 =  s1 & "hex(" & LCase(Hex(CR.ConvertType(ATypes(i3)))) & "):" & ToHex(CR.GetValue(A1(i2) & AVals(i3)), ATypes(i3), Len(AVals(i3))+10) & vbCrLf
 						End Select
 					Next
 			       'MsgBox iRet2 & " values: " & vbCrLf & s1
@@ -161,23 +173,32 @@ Function ExportKey(Path, FileName)
 		
 End Function
 
-
-'---------------------------------------------------- ToHex -----------------------------
-'! Converts each ASCII character to hex string separated by comma.
-'! Author: Antonin Foller, Motobit Software (http://www.motobit.com/help/regedit/sa310.htm)
-'! 
-'! @param  Value   The value to be converted.
-'! @param  Type_   A data type ("REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_MULTI_SZ", "REG_QWORD") with its WMI hex equivalent.
-'! @param  C_      Inserts "<crlf>  " as continuation line every C items
-'! @return The method returns a decimal binary Array if successful.
-'!
-'! @see #ExportKey
-'!
+'-----------------------------------------------------------------------------
+' Function: ToHex
+'
+' Converts each ASCII character to hex string separated by comma.
+'
+' Author: Antonin Foller, Motobit Software (<http://www.motobit.com/help/regedit/sa310.htm>).
+'
+' Parameters:
+' 
+'	Value - The value to be converted. Path_    - Full registry path. The ExportKey method exports all sub keys specified in the path. For example, if MyKey and MySubKey does exist in the following path, the ExportKey method exports both keys: HKEYCURRENTUSER\SOFTWARE\MyKey\MySubKey.
+'	Type_ - A data type ("REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_MULTI_SZ", "REG_QWORD").
+'	C_    - Inserts "<crlf>  " as continuation line every C items
+'
+' Returns: 
+'
+' The method returns a decimal binary Array if successful.
+'
+' See Also:
+'
+' 	<ExportKey>
+'
 Function ToHex(Value, Type_, C_)
 	Dim Out, I 
 	For I=LBound(Value) To UBound(Value)
 		Select Case Type_
-			Case CR.vtBinary
+			Case "REG_BINARY"
 				C = C + 3
 				If C>77 Then 
 					Out = Out & "\" & vbCrLf & "  "
@@ -205,19 +226,29 @@ Function ToHex(Value, Type_, C_)
 	ToHex = LCase(Left(Out,Len(Out)-1))
 End Function
 
-'---------------------------------------------------- QWORD2Arr8 -----------------------------
-'! Convert QWORD decimal string into byte array.
-'! VBScript numeric is limited to 53bit accuracy.
-'! Decimal string representation passed back by GetQWORDValue seems always correct,
-'! but REG_QWORD cannot be byte-splitted without a custom bignum program.
-'! Author: Kabe (http://vega.pgw.jp/~kabe/win/dump2inf.html)
-'! 
-'! @param  q   The value to be converted (StdRegProv GetQWordValue).
-'! @param  a   Byte array.
-'! @return QWORD2Arr8("9843086184167632639", a) => a()=&hff,&hee,&hdd,&hcc,&hbb,&haa,&h99,&h88
-'!
-'! @see #ExportKey
-'!
+'-----------------------------------------------------------------------------
+' Function: QWORD2Arr8
+'
+' Convert QWORD decimal string into byte array.
+' VBScript numeric is limited to 53bit accuracy.
+' Decimal string representation passed back by GetQWORDValue seems always correct,
+' but REG_QWORD cannot be byte-splitted without a custom bignum program.
+'
+' Author: Kabe (<http://vega.pgw.jp/~kabe/win/dump2inf.html>).
+'
+' Parameters:
+' 
+'	q - The value to be converted (StdRegProv GetQWordValue).
+'	a - Byte array.
+'
+' Returns: 
+'
+' QWORD2Arr8("9843086184167632639", a) => a()=&hff,&hee,&hdd,&hcc,&hbb,&haa,&h99,&h88
+'
+' See Also:
+'
+' 	<ExportKey>
+'
 Sub QWORD2Arr8 (ByVal q, ByRef a)
 	Dim i
 	Dim s
@@ -255,5 +286,5 @@ Sub QWORD2Arr8 (ByVal q, ByRef a)
 End Sub
 </script>
 
-<script language="VBScript" src="..\Delete Demo.vbs"/>
+<script language="VBScript" src="Delete Demo.vbs"/>
 </job>

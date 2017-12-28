@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("con",["Function"],[["ConvertType",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.ConvertType","VisualBasicClass:CWMIReg:ConvertType"]]]]);

@@ -1,0 +1,1 @@
+NDMenu.OnSectionLoaded("files.js",[[2,"examples","File:examples/",[[1,"ExportKey.wsf"]]],[1,"RegClass.vbs"]]);

@@ -12,7 +12,7 @@
 '//
 '//----------------------------------------------------------------------------
 
-Dim CR, iRet, Ret, s1, T
+Dim CR, iRet, s1, T
 
 Set CR = New CWMIReg
 CR.Debug = False
@@ -24,9 +24,9 @@ Else
 End If
 
  s1 = s1 & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductID"
- Ret = CR.GetValue(s1)
-    If (Len(Ret) > 0) Then
-       MsgBox "GetValue" & vbCrLf & "ProductID is: " & Ret & vbCrLf & "Data type is: " & CR.ConvertType(CR.Exists(s1))
+ iRet = CR.GetValue(s1)
+    If (Len(iRet) > 0) Then
+       MsgBox "GetValue" & vbCrLf & "ProductID is: " & iRet & vbCrLf & "Data type is: " & CR.Exists(s1)
     Else
        MsgBox "GetValue: ProductID value does not exist."
     End If

@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("enu",["Function"],[["EnumKeys",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.EnumKeys","VisualBasicClass:CWMIReg:EnumKeys"]]],["EnumKeysAll",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.EnumKeysAll","VisualBasicClass:CWMIReg:EnumKeysAll"]]],["EnumVals",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.EnumVals","VisualBasicClass:CWMIReg:EnumVals"]]]]);

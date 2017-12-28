@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("cwm",["Class"],[["CWMIReg",,[[,,,,0,"File:RegClass.vbs:CWMIReg","VisualBasicClass:CWMIReg"]]]]);

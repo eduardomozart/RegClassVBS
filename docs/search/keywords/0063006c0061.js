@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("cla",["Function"],[["Class_Initialize",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.Class_Initialize","VisualBasicClass:CWMIReg:Class_Initialize"]]],["Class_Terminate",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.Class_Terminate","VisualBasicClass:CWMIReg:Class_Terminate"]]]]);

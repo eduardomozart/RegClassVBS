@@ -1,0 +1,1 @@
+NDSearch.OnPrefixDataLoaded("cre",["Function"],[["CreateKey",,[["CWMIReg",,,,0,"File:RegClass.vbs:CWMIReg.CreateKey","VisualBasicClass:CWMIReg:CreateKey"]]]]);
