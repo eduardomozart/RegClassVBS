@@ -16,7 +16,7 @@ The idea is to:
 
 Requirements: Windows 2000 or after (95, 98, NT 4 with WMI Core 1.5).
 
-For Windows 2000, apply Hot-fix KB817478 to dump HKEY_USERS properly.
+For Windows 2000, apply Hotfix KB817478 to dump HKEY_USERS properly.
 
 In all cases, WMI must be running for this class to work. On NT systems (2000/XP/Vista), WMI runs as a service. In order for this class to function the WMI service `winmgmts` must be running. Also, DCOM Server Process Launcher `DcomLaunch` must be running.
 
