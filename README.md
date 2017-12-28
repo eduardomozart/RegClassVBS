@@ -34,7 +34,7 @@ In all cases, WMI must be running for this class to work. On NT systems (2000/XP
  * Cannot properly get invalid REG_DWORD values having non-4byte length.
  * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus, memory-leak-ish values 
    due to unknown bug in the system.
-   (several occurrence when dumping the whole HKEY_LOCAL_MACHINE)
+   (several occurrences when dumping the whole HKEY_LOCAL_MACHINE)
 
  Note:
  * Dumping full tree of HKLM could take significant amount of time
