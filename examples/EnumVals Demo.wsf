@@ -1,0 +1,62 @@
+<job id="EnumVals-Demo">
+<script language="VBScript" src="..\RegClass.vbs"/>
+
+<script language="VBScript">
+'//----------------------------------------------------------------------------
+'! EnumAllKeys Demo
+'! @version: 1.0 - 02 Mar 2017
+'! @author Eduardo Mozart de Oliveira
+'//
+'// This script is provided "AS IS" with no warranties, confers no rights and 
+'// is not supported by the authors or Deployment Artist.
+'//
+'//----------------------------------------------------------------------------
+
+Dim CR, iRet, iRet2, iRet3, s1, Val, T, A1, A2, A3, i2, s2, i3
+
+MsgBox "This demo enumerates values.", 64, "Reg Class"
+
+Set CR = New CWMIReg
+
+
+iRet = CR.EnumVals("HKLM\software\microsoft\windows\currentversion\", A1, A2)
+ If iRet > 0 Then
+    For i2 = 0 to iRet - 1
+      s1 = s1 & A1(i2) & Chr(9) & A2(i2) & vbCrLf
+    Next
+       MsgBox iRet & " values: " & vbCrLf & s1
+ Else
+       MsgBox iRet
+       Set CR = Nothing
+       WScript.quit
+ End If
+  
+   MsgBox "Having returned the names and types of values, the script will now return the data. Note that on some systems, with a character limit in message boxes, all value data may not show.", 64, "Reg Class"
+ 
+s1 = ""  
+ For i2 = 0 to iRet - 1
+    Val = CR.GetValue("HKLM\software\microsoft\windows\currentversion\" & A1(i2))
+    Select Case CR.Exists("HKLM\software\microsoft\windows\currentversion\" & A1(i2))
+      Case CR.vtString, CR.vtExpandString, CR.vtDWord
+        s1 = s1 & A1(i2) & ": " & Val & vbCrLf
+      Case CR.vtBinary
+       s2 = ""
+        For i3 = 0 to UBound(Val) 
+           s2 = s2 & Val(i3) & "-"
+         Next
+          s1 = s1 & A1(i2) & ": " & s2 & vbCrLf
+      Case CR.vtMultiString
+         s2 = ""
+            For i3 = 0 to UBound(Val) 
+           s2 = s2 & Val(i3) & "|"
+         Next
+           s1 = s1 & A1(i2) & ": " & s2 & vbCrLf 
+    End Select    
+ Next
+
+MsgBox iRet & " values with data: " & vbCrLf & s1
+
+
+Set CR = Nothing
+</script>
+</job>

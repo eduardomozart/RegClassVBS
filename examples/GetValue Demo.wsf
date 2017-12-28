@@ -1,0 +1,40 @@
+<job id="GetValue-Demo">
+<script language="VBScript" src="..\RegClass.vbs"/>
+
+<script language="VBScript">
+'//----------------------------------------------------------------------------
+'! GetValue Demo
+'! @version: 1.0 - 01 Mar 2017
+'! @author Eduardo Mozart de Oliveira
+'//
+'// This script is provided "AS IS" with no warranties, confers no rights and 
+'// is not supported by the authors or Deployment Artist.
+'//
+'//----------------------------------------------------------------------------
+
+Dim CR, iRet, Ret, s1, T
+
+Set CR = New CWMIReg
+CR.Debug = False
+
+If CR.GetValue("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE") = "x86" Then        
+    s1 = "HKLM"  
+Else    
+    s1 = "HKLM64"
+End If
+
+ s1 = s1 & "\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductID"
+ Ret = CR.GetValue(s1)
+    If (Len(Ret) > 0) Then
+       MsgBox "GetValue" & vbCrLf & "ProductID is: " & Ret & vbCrLf & "Data type is: " & CR.ConvertType(CR.Exists(s1))
+    Else
+       MsgBox "GetValue: ProductID value does not exist."
+    End If
+      
+
+
+
+
+Set CR = Nothing
+</script>
+</job>

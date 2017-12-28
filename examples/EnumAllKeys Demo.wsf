@@ -1,0 +1,33 @@
+<job id="EnumAllKeys-Demo">
+<script language="VBScript" src="..\RegClass.vbs"/>
+
+<script language="VBScript">
+'//----------------------------------------------------------------------------
+'! EnumAllKeys Demo
+'! @version: 1.0 - 02 Mar 2017
+'! @author Eduardo Mozart de Oliveira
+'//
+'// This script is provided "AS IS" with no warranties, confers no rights and 
+'// is not supported by the authors or Deployment Artist.
+'//
+'//----------------------------------------------------------------------------
+
+Dim CR, iRet, Ret, s1, T, A1, i2
+
+MsgBox "This demo enumerates all keys under HKLM\Software\Mozilla. It assumes Mozilla software is installed.", 64, "Reg Class"
+
+Set CR = New CWMIReg
+
+iRet = CR.EnumKeysAll("HKLM\SOFTWARE\Mozilla\", A1)
+  If iRet > 0 Then
+    For i2 = 0 to iRet - 1
+      s1 = s1 & vbCrLf & A1(i2)
+    Next
+      MsgBox iRet & " keys:" & vbCrLf & s1
+  Else
+     MsgBox "No keys."    
+  End If
+  
+Set CR = Nothing
+</script>
+</job>
