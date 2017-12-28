@@ -41,5 +41,5 @@ cscript VBSdoc.vbs /a /i:examples\ExportKeys.wsf /o:examples\docs
 
 ## Contributors
 
-- Joe Priestley (2004-2008).
+- Joe Priestley. (2004-2008)
 - Kabe. [dump2inf.vbs](http://vega.pgw.jp/~kabe/win/dump2inf.html).
