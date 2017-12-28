@@ -44,6 +44,10 @@ In all cases, WMI must be running for this class to work. On NT systems (2000/XP
 
 You can build docs using [Natural Docs](http://www.naturaldocs.org).
 
+```
+NaturalDocs.exe docs
+```
+
 ## Contributors
 
 - Joe Priestley. (2004-2008)
