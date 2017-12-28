@@ -22,18 +22,18 @@ In all cases, WMI must be running for this class to work. On NT systems (2000/XP
 
 ## WSH Limitations:
 
- * Cannot get unexpanded REG_EXPAND_SZ value if valuename includes "\".
- * If the key does not contain any explicit valuenames, the program cannot tell apart
+ * Cannot get unexpanded REG_EXPAND_SZ value if value name includes "\\".
+ * If the key does not contain any explicit value names, the program cannot tell apart
    the key's default value from undefined or REG_NONE.
    The program always emits as default value undefined (FLG_ADDREG_KEYONLY).
- * If the key does not contain any explicit valuenames, and the key itself has REG_EXPAND_SZ
+ * If the key does not contain any explicit value names, and the key itself has REG_EXPAND_SZ
    as the default value, and it does not include any expandable string (%value%),
    the program cannot tell its expandability. Program emits the default value as REG_SZ.
  * Windows 2000, 2003 cannot read REG_QWORD values, as it lacks GetQWORDValue() method.
- * Cannot get REG_RESOURCE_LIST(type 8), REG_FULL_RESOURCE_REQUIREMENTS_LIST(type 10) values.
-    (you probably do not want them either)
+ * Cannot get REG_RESOURCE_LIST (type 8), REG_FULL_RESOURCE_REQUIREMENTS_LIST (type 10) values
+   (you probably do not want them either).
  * Cannot properly get invalid REG_DWORD values having non-4byte length.
- * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus,memory-leak-ish values 
+ * On Windows 2000, REG_SZ/REG_MULTI_SZ output could have bogus, memory-leak-ish values 
    due to unknown bug in the system.
    (several occurence when dumping the whole HKEY_LOCAL_MACHINE)
 
