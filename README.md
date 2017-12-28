@@ -40,9 +40,13 @@ In all cases, WMI must be running for this class to work. On NT systems (2000/XP
  * Dumping full tree of HKLM could take significant amount of time
    with a high CPU load. (HKLM dump of Windows Vista yields ~160MB file)
  
-## Building docs
+## Building Docs
 
 You can build docs using [Natural Docs](http://www.naturaldocs.org).
+
+```
+NaturalDocs.exe docs
+```
 
 ## Contributors
 
