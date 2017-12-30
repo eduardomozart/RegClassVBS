@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Minor bug fixes.
 
 ### Changed
-- Changed `ConvertType()` logic - Now it returns Type into WMI hex format. To reproduce the old behavior, you can call "ConvertType" function (that were made public) that automatically converts the type from hex to string and vice-versa. An example can be found on "examples\GetValue-Demo.wsf".
+- Changed `ConvertType()` logic - Now it returns Type into WMI hex format. To reproduce the old behavior, you can call `ConvertType()` function (that were made public) that automatically converts the type from hex to string and vice-versa. An example can be found on "examples\GetValue-Demo.wsf".
 - `Delete()` function will return `0` (Success) instead of `-4` if key/value does not exist.
 
 ## 2.5.0 - 2014-02-05
