@@ -16,7 +16,7 @@ The idea is to:
 
 ## Requirements
 
-Windows 2000 or after (95, 98, NT 4 with WMI Core 1.5).
+Windows 2000 or later (95, 98, NT 4 with WMI Core 1.5).
 
 For Windows 2000 SP4, apply Hotfix [KB817478](http://support.microsoft.com/kb/817478) to replace WMI `stdprov.dll` to dump HKEY_USERS properly.
 
