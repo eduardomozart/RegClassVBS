@@ -9,7 +9,7 @@
 '
 ' Version:
 '
-' 	2.7
+' 	3.0.2
 '
 ' Author:
 '
@@ -20,7 +20,7 @@
 '
 ' 	REG_SZ        - A string value.
 ' 	REG_EXPAND_SZ - An expanded string data value. The environment variable specified in the string must exist for the string to be expanded when you call GetValue.
-' 	REG_BINARY    - An array of binary data values.
+' 	REG_BINARY    - An array of binary data values. The script can set REG_BINARY keys as long as they are in the format used by a regedit.exe export or a bytes Array. See *examples\Create Demo.vbs*.
 ' 	REG_DWORD     - A numeric data value.
 ' 	REG_MULTI_SZ  - A list of strings. The SetValue method accepts an array of strings as the parameter that determines the values of the entry. Note that if you use the SetValue method to append to an existing multistring-valued entry rather than create a new one, you have to first use the GetValue method to retrieve the existing list of strings. This is because SetValue overwrites any existing value. 
 ' 	REG_QWORD     - A QWORD data value for the named value.
@@ -29,46 +29,48 @@
 '
 ' Most of the functions return error codes. There are standard error codes (negative numbers) that mean the same for all functions.
 '
-' -1 - Invalid Key Path
+' -1 - Invalid Path
 ' -2 - Invalid HKey
-' -3 - OS arch mismatch (Example: Assigning a QWord into a 32-bit OS) 
+' -3 - Invalid Key Path
 ' -4 - Permission denied
+' -5 - OS arch mismatch (Example: Assigning a QWord into a 32-bit OS) 
 ' < 0 - Other error codes specific to the functions. See <https://msdn.microsoft.com/en-us/library/aa393978(v=vs.85).aspx> (WbemErrorEnum)
 '
 ' See Also:
 ' 
-' 	WMI Reference, StdRegProv Class <http://msdn.microsoft.com/en-us/library/aa393664.aspx>
+' 	<WMI Reference, StdRegProv Class: http://msdn.microsoft.com/en-us/library/aa393664.aspx>
+'	<Managing Windows Registry with Scripting (Part 2): http://www.serverwatch.com/tutorials/article.php/1476861>
 '
 Class CWMIReg
-	Private HKCR_ '! HKEY_CLASSES_ROOT constant (StdRegProv).
-	Private HKCU_ '! HKEY_CURRENT_USER constant (StdRegProv).
-	Private HKLM_ '! HKEY_LOCAL_MACHINE constant (StdRegProv).
-	Private HKU_ '! HKEY_USERS constant (StdRegProv).
+	Private HKCR_ ' HKEY_CLASSES_ROOT constant (StdRegProv).
+	Private HKCU_ ' HKEY_CURRENT_USER constant (StdRegProv).
+	Private HKLM_ ' HKEY_LOCAL_MACHINE constant (StdRegProv).
+	Private HKU_ ' HKEY_USERS constant (StdRegProv).
    
-	Private Loc_ '! WMI Locator (SWbemLocator) object (64-bit support for StdRegProv).
-	Private Provider_ '! StdRegProv key target (32-bit or 64-bit).
-	Private Processor_ '! Windows OS bitness (32-bit or 64-bit).
+	Private Loc_ ' WMI Locator (SWbemLocator) object (64-bit support for StdRegProv).
+	Private Provider_ ' StdRegProv key target (32-bit or 64-bit).
+	Private Processor_ ' Windows OS bitness (32-bit or 64-bit).
 	
-	Private debugEnabled '! Enable or disable debug logging.
+	Private debugEnabled ' Enable or disable debug logging.
 	
 	' ValueType
-	Private vtNone_ '! No value type.
-	Private vtString_ '! Nul terminated string.
-	Private vtExpandString_ '! Nul terminated string (with environment variable references).
-	Private vtBinary_ '! Free form binary.
-	Private vtDWord_ '! 32-bit number.
-	Private vtDWordBigEndian_ '! 32-bit number. In big-endian format, the most significant byte of a word is the low-order byte.
-	Private vtLink_ '! Symbolic Link (unicode).
-	Private vtMultiString_ '! Multiple strings.
-	Private vtResourceList_ '! Resource list in the resource map.
-	Private vtFullResourceDescriptor_ '! Resource list in the hardware description.
-	Private vtResourceRequirementsList_ '! Resource list in the hardware description.
-	Private vtQWord_ '! 64-bit number.
+	Private vtNone_ ' No value type.
+	Private vtString_ ' Nul terminated string.
+	Private vtExpandString_ ' Nul terminated string (with environment variable references).
+	Private vtBinary_ ' Free form binary.
+	Private vtDWord_ ' 32-bit number.
+	Private vtDWordBigEndian_ ' 32-bit number. In big-endian format, the most significant byte of a word is the low-order byte.
+	Private vtLink_ ' Symbolic Link (unicode).
+	Private vtMultiString_ ' Multiple strings.
+	Private vtResourceList_ ' Resource list in the resource map.
+	Private vtFullResourceDescriptor_ ' Resource list in the hardware description.
+	Private vtResourceRequirementsList_ ' Resource list in the hardware description.
+	Private vtQWord_ ' 64-bit number.
 	' ValueType - end
 	
-	'! Enable or disable debug logging. If enabled, debug messages are 
-	'! logged to the enabled facilities. Otherwise debug messages are 
-	'! silently discarded. This property is disabled by default.
+	' Enable or disable debug logging. If enabled, debug messages are 
+	' logged to the enabled facilities. Otherwise debug messages are 
+	' silently discarded. This property is disabled by default.
 	Public Property Get Debug
 		Debug = debugEnabled
 	End Property
@@ -85,7 +87,7 @@ Class CWMIReg
 '
 ' Parameters:
 '
-' 	Path_  - Add "\" for keys.
+' 	Path_  - Add "\" at end for keys.
 '
 ' Returns:
 '
@@ -140,8 +142,7 @@ End Function
 '
 ' Returns:
 '
-' On success function returns value data. The method returns a string value that is "" (empty) if value does not exist. Otherwise the return can be a standard error code from -1 to -4 (see *Error Codes*). If the function fails, the return value is a negative error code.
-'
+' On success function returns value data. The method returns a string value that is "" (empty) if value does not exist. Otherwise the return can be a standard error code from -1 to -5 (see *Error Codes*). If the function fails, the return value is a nonzero error code.
 '
 Public Function GetValue(Path_)
 	Dim Path1_, sKey_, LKey_, iRet_, Val_, Pt1_, ValName_, Typ_
@@ -276,7 +277,7 @@ End Function
 '
 ' Returns:
 '
-' Function returns number of sub keys. Greater than 0 is the count of sub keys. Zero indicates no sub keys. Otherwise the return can be a standard error code from -1 to -4 (see *Error Codes*). If the function fails, the return value is a negative error code. AKeys contains sub key names.
+' Function returns number of sub keys. Greater than 0 is the count of sub keys. Zero indicates no sub keys. Otherwise the return can be a standard error code from -1 to -5 (see *Error Codes*). If the function fails, the return value is a nonzero error code. AKeys contains sub key names.
 '
 Public Function EnumKeys(Path_, AKeys_)
 	Dim iRet_, sKey_, LKey_, Pt1_, Pt2, Path1_
@@ -295,7 +296,7 @@ Public Function EnumKeys(Path_, AKeys_)
 	EnumKeys = -2 '-- invalid hkey.
 		If (LKey_ = 0) Then Exit Function
   
-	EnumKeys = -3 '-- os arch mismatch.
+	EnumKeys = -5 '-- os arch mismatch.
 		If IsEmpty(Provider_) Then Exit Function
      
     If (sKey_ = Path_) Then
@@ -328,8 +329,8 @@ Public Function EnumKeys(Path_, AKeys_)
 				EnumKeys = UBound(AKeys_) + 1
 			End If  
 		Case 2 '-- invalid key Path
-			EnumKeys = -1
-		Case -2147217405   '--  access denied  H80041003
+			EnumKeys = -3
+		Case -2147217405, 5   '--  access denied  H80041003
 			EnumKeys = -4
 		Case Else
 			EnumKeys = iRet_  '-- some other error.  
@@ -349,7 +350,7 @@ End Function
 '
 ' Returns:
 '
-' If return is > 0 it represents the number of values in the key. A return of 0 indicates no values present and no data saved in the default value. The value count is the same as UBound(AValsOut) + 1. For example, if a given key has 3 values written, EnumVals will return 3 and the empty default value will be ignored. If you then assign a string to the default value in that key, EnumVals will return 4. -1 to -4 are the standard error codes (see *Error Codes*). If the function fails, the return value is a negative error code.
+' If return is > 0 it represents the number of values in the key. A return of 0 indicates no values present and no data saved in the default value. The value count is the same as UBound(AValsOut) + 1. For example, if a given key has 3 values written, EnumVals will return 3 and the empty default value will be ignored. If you then assign a string to the default value in that key, EnumVals will return 4. -1 to -5 are the standard error codes (see *Error Codes*). If the function fails, the return value is a nonzero error code.
 '
 Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 	Dim sKey_, Pt1_, Pt2_, LKey_, iRet_, Path1_, iCnt_, Val_
@@ -370,7 +371,7 @@ Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
     EnumVals = -2 '-- invalid hkey.
 		If (LKey_ = 0) Then Exit Function
     
-	EnumVals = -3 '-- os arch mismatch.
+	EnumVals = -5 '-- os arch mismatch.
 		If IsEmpty(Provider_) Then Exit Function
        
     
@@ -402,7 +403,7 @@ Public Function EnumVals(Path_, AValsOut_, ATypesOut_)
 				Next   
 			End If  
 		Case 2 '-- invalid key Path
-			EnumVals = -1
+			EnumVals = -3
 		Case -2147217405   '--  access denied  H80041003
 			EnumVals = -4
 		Case Else
@@ -423,7 +424,7 @@ End Function
 '
 ' Returns:
 '
-' The method returns a int value that is 0 (zero) if successful.  -1 to -4 are standard errors (see *Error Codes*). -5 = type mismatch (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -6 = invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
+' The method returns a int value that is 0 (zero) if successful.  -1 to -5 are standard errors (see *Error Codes*). -5 = Incoming value not valid (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -6 = Invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
 '
 Public Function SetValue(Path_, ValData_, TypeIn_)
 	Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_ 
@@ -499,15 +500,22 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
            SetValue = -2  '-- invalid hKey.
            Exit Function
         ElseIf IsEmpty(Provider_) Or Processor_ = "x86" And Typ_ = "REG_QWORD" Then
-           SetValue = -3 '-- os arch mismatch
+           SetValue = -5 '-- os arch mismatch
            Exit Function
         End If   
 
 	'-- Create a key if it does not exist ------------
 	iRet_ = EnumKeys(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1), AKeys)
 	If iRet_ <> 0 Then 
-  	iRet_ = CreateKey(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1))
-		If iRet_ <> 0 Then
+		If iRet_ <> -4 Then
+			iRet_ = CreateKey(sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1))
+			If iRet_ <> 0 Then
+				If debugEnabled Then WScript.Echo "SetValue - Cannot create " & sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1) & " key."
+				SetValue = iRet_
+				Exit Function
+			End If
+		Else
+			If debugEnabled Then WScript.Echo "SetValue - Access denied to " & sKey_ & "\" & Left(Path1_, InStrRev(Path1_, "\")-1) & " key."
 			SetValue = iRet_
 			Exit Function
 		End If
@@ -621,7 +629,7 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 		Case 0
 			SetValue = 0   'success.
 		Case 2 '-- invalid key path 
-			SetValue = -1
+			SetValue = -3
 		Case -2147217405   '--  access denied  H80041003
 			SetValue = -4
 		Case Else
@@ -661,7 +669,7 @@ Public Function CreateKey(Path_)
 	LKey_ = GetHKey(sKey_)
 		If (LKey_ = 0) Then Exit Function
     
-	CreateKey = -3 ' os arch mismatch.
+	CreateKey = -5 ' os arch mismatch.
 		If IsEmpty(Provider_) Then Exit Function
      
 	If Right(Path1_, 1) = "\" Then Path1_ = Left(Path1_, (len(Path1_) - 1))
@@ -682,7 +690,7 @@ Public Function CreateKey(Path_)
         Case 0			   	  '-- OK.
 			CreateKey = 0  
         Case 2             	  '-- invalid key
-			CreateKey = -1
+			CreateKey = -3
         Case -2147217405      '--  access denied  H80041003
 			CreateKey = -4
         Case Else
@@ -719,7 +727,7 @@ Public Function Delete(Path_)
 	LKey_ = GetHKey(sKey_)
 		If (LKey_ = 0) Then Exit Function
     
-	Delete = -3 ' os arch mismatch
+	Delete = -5 ' os arch mismatch
 		If IsEmpty(Provider_) Then Exit Function
     
     If Right(Path1_, 1) = "\" Then
@@ -751,8 +759,8 @@ Public Function Delete(Path_)
 			Delete = -1 ' invalid path.
         Case -2  ' returned from DeleteKey
 			Delete = -2 ' invalid hKey.
-        Case 2
-			Delete = 0 ' value does not exists.
+		Case 2 '-- invalid Key path
+			Delete = -3
         Case -2147217405   '--  access denied  H80041003
 			Delete = -4
        Case Else
@@ -764,7 +772,7 @@ End Function
 '-----------------------------------------------------------------------------
 ' Function: TestPath
 '
-' Returns key level. The Delete function, since it is capable of deleting a key "tree", has a built-in safety feature. It will return error code -1 (invalid path) if the Path parameter does not contain at least 3 backslashes. That prevents the accidental deletion of the main hive keys and their direct sub keys. In other words, HKCU cannot be deleted. Nor can HKCU\Software\.
+' Returns key level. The Delete function, since it is capable of deleting a key "tree", has a built-in safety feature. It will return error code -1 (Invalid Path) if the PathIn_ parameter does not contain at least 3 backslashes. That prevents the accidental deletion of the main hive keys and their direct sub keys. In other words, HKCU cannot be deleted. Nor can HKCU\Software\.
 '
 ' Parameters:
 '
@@ -774,8 +782,8 @@ End Function
 '
 ' The method returns a int value > 0 (zero) if successful. If the function fails, the return value is a 0 (zero) error code.
 '
-' - HKCU\Software\Classes\ = HKCR\ = 1
-' - HKLM\Software\ = 2
+' - HKCU\Software\Classes\ = HKCR\ = -1 (Invalid path)
+' - HKLM\Software\ = -1 (Invalid Path)
 ' - HKCU\ControlPanel\Desktop = 3
 ' - HKLM\Software\Microsoft\Windows NT\CurrentVersion = 5
 '
@@ -937,7 +945,7 @@ End Function
 '
 ' Parameters:
 ' 
-'	TypeIn_   The Type to be enumerated.
+'	TypeIn_ - The Type to be enumerated.
 '
 ' Returns: 
 '

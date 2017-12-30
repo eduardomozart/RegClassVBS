@@ -26,16 +26,19 @@ iRet = CR.CreateKey("HKCU\software\microsoft\blah1\blah2\blah3\")
       WScript.Quit
    End If   
    
-         A1 = Array(34, 23, 1, 0, 0, 255, 32, 100)
+		 ' The script can set REG_BINARY keys as long as they are in the format used by a regedit.exe export or a binary Array.
+         A1 = Array(34, 23, 1, 0, 0, 255, 32, 100) ' A1 = "hex:22,17,01,00,00,ff,20,64"
+		 ' "hex:34,23,01,00,00,255,32,100" are not the same! Array is written in byte values.
       iRet = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\BinVal", A1, "REG_BINARY")
       iRet2 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\StrVal", "Some string value.", "REG_SZ")
-      iRet3 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal", 60, "REG_DWORD")
+	  iRet3 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\XStrVal","%APPDATA%","REG_EXPAND_SZ")
+      iRet4 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal", 60, "REG_DWORD")
         A2 = Array("first multi string", "second multi string", "third multi string")
-      iRet4 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\MultiVal", A2, "REG_MULTI_SZ")
-	  iRet5 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal64", 60, "REG_QWORD")
+      iRet5 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\MultiVal", A2, "REG_MULTI_SZ")
+	  iRet6 = CR.SetValue("HKCU\software\microsoft\blah1\blah2\blah3\NumVal64", 60, "REG_QWORD")
 
        
-        MsgBox "Attempt to set 5 values, binary, string, dword, multi-string and qword. Return codes are:" & vbCrLf & iRet & vbCrLf & iRet2 & vbCrLf & iRet3 & vbCrLf & iRet4 & vbCrLf & iRet5
+        MsgBox "Attempt to set 6 values, binary, string, expand string, dword, multi-string and qword. Return codes are:" & vbCrLf & iRet & vbCrLf & iRet2 & vbCrLf & iRet3 & vbCrLf & iRet4 & vbCrLf & iRet5 & vbCrLf & iRet6
 
 
           
