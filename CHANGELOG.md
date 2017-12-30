@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed `EnumKeys()`, `EnumVals()` and `GetValue()` return codes on documentation: they returns a nonzero value instead of a negative one on failure.
 
 ### Changed
-- `EnumKeys()`, `EnumVals()`, `SetValue()`, `CreateKey()` and `Delete()` functions will return `-3` (Invalid Path) for invalid/non-existent keys/values and "OS arch mismatch" (`-3`) error code becomes `-5` to provides backward compatibility with JSWare CWMIRegClass.
+- `EnumKeys()`, `EnumVals()`, `SetValue()`, `CreateKey()` and `Delete()` functions will return `-3` (Invalid Path) for invalid/non-existent keys/values and "OS arch mismatch" (`-3`) error code becomes `-5` to provides backward compatibility with JSWare CWMIRegClass. Type mismatch (`-5`) and Invalid data type value sent (`-6`) becomes `-6` and `-7` respectively.
 
 ## [3.0.1] - 2017-12-29
 ### Changed

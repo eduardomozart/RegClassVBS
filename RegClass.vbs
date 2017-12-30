@@ -424,7 +424,7 @@ End Function
 '
 ' Returns:
 '
-' The method returns a int value that is 0 (zero) if successful.  -1 to -5 are standard errors (see *Error Codes*). -5 = Incoming value not valid (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -6 = Invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
+' The method returns a int value that is 0 (zero) if successful.  -1 to -5 are standard errors (see *Error Codes*). -6 = Incoming value not valid (data type of value data not coercible. Example: Assigning a string to ValData for a binary setting). -7 = Invalid data type value sent (for example, sending "A" as Type would be invalid). If the function fails, the return value is a nonzero error code.
 '
 Public Function SetValue(Path_, ValData_, TypeIn_)
 	Dim Path1_, sKey_, LKey_, iRet_, Pt1_, Pt2_, ValName_ 
@@ -615,13 +615,13 @@ Public Function SetValue(Path_, ValData_, TypeIn_)
 				Set Outparams_ = Reg1_.ExecMethod_("SetQWORDValue", Inparams_,,Ctx_)
 				iRet_ = Outparams_.ReturnValue 
 			Case Else
-				SetValue = -6
+				SetValue = -7
 				Exit Function 
         End Select
 	End If   
    
     If (Err.number = -2147217403) Then 
-       SetValue = -5  '-- type mismatch. incoming value not valid.
+       SetValue = -6  '-- type mismatch. incoming value not valid.
        Exit Function
     End If
 	
